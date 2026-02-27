@@ -1,0 +1,4 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bg_type TEXT DEFAULT 'none';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bg_value TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bg_opacity REAL DEFAULT 1;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bg_blur REAL DEFAULT 0;

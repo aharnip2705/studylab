@@ -1,0 +1,282 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath, unstable_noStore as noStore } from "next/cache";
+import { filterSubjectsByField } from "@/lib/study-field";
+
+const PROGRAM_ID = "11111111-1111-1111-1111-111111111111";
+
+/** Verilen tarihin hafta başı (Pazartesi) YYYY-MM-DD olarak */
+function getWeekStart(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - (day === 0 ? 6 : day - 1);
+  d.setDate(diff);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dayNum = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dayNum}`;
+}
+
+export async function getOrCreateWeeklyPlan() {
+  noStore();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { plan: null, tasks: [] };
+
+  const weekStart = getWeekStart(new Date());
+
+  let { data: plan } = await supabase
+    .from("weekly_plans")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("week_start_date", weekStart)
+    .single();
+
+  if (!plan) {
+    const { data: newPlan, error } = await supabase
+      .from("weekly_plans")
+      .insert({ user_id: user.id, program_id: PROGRAM_ID, week_start_date: weekStart })
+      .select()
+      .single();
+    if (error) return { plan: null, tasks: [] };
+    plan = newPlan;
+  }
+
+  const { data: tasks, error: tasksError } = await supabase
+    .from("plan_tasks")
+    .select(`
+      *,
+      subjects(name, icon_url),
+      resources(name),
+      user_resources(name)
+    `)
+    .eq("weekly_plan_id", plan.id)
+    .order("task_date")
+    .order("created_at");
+
+  // Ana sorgu hata verirse icon_url olmadan tekrar dene
+  if (tasksError) {
+    const { data: tasksFallback } = await supabase
+      .from("plan_tasks")
+      .select(`
+        *,
+        subjects(name, icon_url),
+        resources(name),
+        user_resources(name)
+      `)
+      .eq("weekly_plan_id", plan.id)
+      .order("task_date")
+      .order("created_at");
+    return { plan, tasks: tasksFallback ?? [] };
+  }
+
+  return { plan, tasks: tasks ?? [] };
+}
+
+export async function getSubjects() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  let studyField: string | null = null;
+  try {
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("study_field")
+        .eq("id", user.id)
+        .single();
+      studyField = (profile as { study_field?: string } | null)?.study_field ?? null;
+    }
+  } catch {
+    // study_field yoksa tüm dersler
+  }
+
+  const { data } = await supabase
+    .from("subjects")
+    .select("*")
+    .eq("program_id", PROGRAM_ID)
+    .order("sort_order");
+  const all = data ?? [];
+  return filterSubjectsByField(all, studyField as "esit_agirlik" | "sayisal" | "sozel" | "dil" | "tyt" | null);
+}
+
+export async function getPublishers() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("publishers")
+    .select("id, name, sort_order, logo_url")
+    .eq("program_id", PROGRAM_ID)
+    .order("sort_order")
+    .order("name");
+  return data ?? [];
+}
+
+export async function getResources(type: "ders" | "deneme" = "ders") {
+  const supabase = await createClient();
+  const types = type === "deneme"
+    ? ["deneme_sinavi"]
+    : ["soru_bankasi", "video_ders_kitabi", "diger"];
+  const { data } = await supabase
+    .from("resources")
+    .select("id, name, icon_url, publisher_id")
+    .eq("program_id", PROGRAM_ID)
+    .in("resource_type", types)
+    .order("name");
+  return data ?? [];
+}
+
+export async function getUserResources() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data } = await supabase
+    .from("user_resources")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("name");
+  return data ?? [];
+}
+
+export async function addTask(formData: {
+  task_date: string;
+  day_of_week: number;
+  subject_id?: string;
+  task_type: "video" | "test" | "deneme";
+  resource_id?: string;
+  user_resource_id?: string;
+  resource_name?: string;
+  question_count?: number;
+  youtube_video_id?: string;
+  target_duration?: number;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Oturum açmanız gerekiyor" };
+
+  const weekStart = getWeekStart(new Date(formData.task_date));
+
+  let { data: plan } = await supabase
+    .from("weekly_plans")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("week_start_date", weekStart)
+    .single();
+
+  if (!plan) {
+    const { data: newPlan, error } = await supabase
+      .from("weekly_plans")
+      .insert({ user_id: user.id, program_id: PROGRAM_ID, week_start_date: weekStart })
+      .select("id")
+      .single();
+    if (error) return { error: error.message };
+    plan = newPlan;
+  }
+
+  const { error } = await supabase.from("plan_tasks").insert({
+    weekly_plan_id: plan.id,
+    task_date: formData.task_date,
+    day_of_week: formData.day_of_week,
+    subject_id: formData.subject_id || null,
+    task_type: formData.task_type,
+    resource_id: formData.resource_id || null,
+    user_resource_id: formData.user_resource_id || null,
+    resource_name: formData.resource_name || null,
+    question_count: formData.question_count ?? 0,
+    youtube_video_id: formData.youtube_video_id || null,
+    target_duration: formData.target_duration ?? 0,
+  });
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/gorev-ekle");
+  return { success: true };
+}
+
+export async function updateTaskStatus(
+  taskId: string,
+  status: "tamamlanmadi" | "kismen_tamamlandi" | "tamamlandi",
+  extra?: { solved_questions_count?: number; excuse?: string | null }
+) {
+  const supabase = await createClient();
+  const payload: Record<string, unknown> = {
+    status,
+    updated_at: new Date().toISOString(),
+  };
+  if (extra?.solved_questions_count != null) payload.solved_questions_count = extra.solved_questions_count;
+  if (extra?.excuse !== undefined) payload.excuse = extra.excuse;
+  const { error } = await supabase.from("plan_tasks").update(payload).eq("id", taskId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/istatistikler");
+  return { success: true };
+}
+
+export async function updateTaskNotes(taskId: string, notes: string | null) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("plan_tasks")
+    .update({ notes: notes ?? null, updated_at: new Date().toISOString() })
+    .eq("id", taskId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function moveTask(taskId: string, newTaskDate: string, newDayOfWeek: number) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("plan_tasks")
+    .update({
+      task_date: newTaskDate,
+      day_of_week: newDayOfWeek,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function deleteTask(taskId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("plan_tasks").delete().eq("id", taskId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/istatistikler");
+  return { success: true };
+}
+
+export async function addUserResource(name: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Oturum açmanız gerekiyor", id: null };
+
+  const { data, error } = await supabase
+    .from("user_resources")
+    .insert({ user_id: user.id, name: name.trim() })
+    .select("id")
+    .single();
+
+  if (error) return { error: error.message, id: null };
+  revalidatePath("/dashboard/gorev-ekle");
+  return { success: true, id: data.id };
+}
+
+export async function deleteUserResource(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Oturum açmanız gerekiyor" };
+
+  const { error } = await supabase
+    .from("user_resources")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/gorev-ekle");
+  return { success: true };
+}
