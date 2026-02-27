@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  devIndicators: { buildActivity: false }, // Sol alttaki hata bildirimi kullanıcıya gösterilmesin
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

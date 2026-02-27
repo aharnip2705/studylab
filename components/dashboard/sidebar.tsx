@@ -96,7 +96,7 @@ export function DashboardSidebar() {
               href={item.href}
               prefetch={true}
               scroll={false}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] active:scale-[0.97] ${
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ease-out active:scale-[0.97] ${
                 collapsed ? "justify-center px-0" : ""
               } ${
                 isActive

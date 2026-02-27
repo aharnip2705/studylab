@@ -72,21 +72,34 @@ export async function POST(req: NextRequest) {
       ? `\n[Bağlam]\n${contextParts.join("\n")}\n`
       : "";
 
+    const prevMessages = (body.messages ?? []) as { role: string; content: string }[];
+    const recentUserText = [...prevMessages].reverse().find((m) => m.role === "user")?.content ?? "";
+
+    const wantsPlan =
+      /program\s*oluştur|program\s*hazırla|plan\s*oluştur|plan\s*hazırla|haftalık\s*plan|program\s*yap|e\s+hadi\s+oluştur|oluştur\s+program|hazırla\s+program/i.test(message) ||
+      /^(e\s+)?hadi\s+(oluştur|hazırla|yap)|^(evet\s+)?oluştur|^(tamam\s+)?hazırla$/i.test(message.trim()) ||
+      (recentUserText.length > 20 && /program|plan|haftalık/i.test(recentUserText) && /^(evet|e|tamam|hadi|olur|olsun)/i.test(message.trim()));
+
+    const systemPrompt = wantsPlan
+      ? `Sen sıcak ve samimi bir YKS hazırlık koçusun.${systemContext}
+Öğrenci haftalık çalışma programı istiyor. SADECE aşağıdaki JSON formatında cevap ver. Başka hiçbir metin, açıklama veya markdown ekleme. Cevabın tek başına geçerli bir JSON olsun:
+{"plan":[{"day":"Pazartesi","tasks":[{"subject":"Türkçe","duration_minutes":90,"description":"Fiilimsiler konu tekrarı ve soru çözümü"}]},{"day":"Salı","tasks":[]},...]}
+Haftanın 7 günü: Pazartesi, Salı, Çarşamba, Perşembe, Cuma, Cumartesi, Pazar. Her gün 2-4 görev. subject: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe, Sosyal gibi ders adları kullan. duration_minutes sayı olmalı. description kısa ve net olsun.`
+      : `Sen sıcak, samimi ve insan gibi konuşan bir YKS hazırlık koçusun.${systemContext}
+Öğrenciyle arkadaş gibi sohbet et. Robot gibi, kuru ve yapay cevaplar verme. Bazen kısa sorular sor, empati göster, motive et. Türkçe yaz. Cümleleri doğal tut, "Şunu yapmalısın" gibi emir kipli ifadelerden kaçın. "Bence", "Senin için", "Şöyle düşünüyorum" gibi kişisel ifadeler kullan. Gerektiğinde hafif mizah kat. Maksimum 4-5 cümle ama samimi olsun.`;
+
     const contents: { role: string; parts: { text: string }[] }[] = [
       {
         role: "user",
-        parts: [{
-          text: `Sen YKS hazırlık koçusun.${systemContext}Öğrenci sana soru soruyor. Kısa, motive edici ve gerçekçi yanıt ver. Türkçe yaz. 3 cümleyi geçme.`,
-        }],
+        parts: [{ text: systemPrompt }],
       },
       {
         role: "model",
-        parts: [{ text: "Anladım. Deneme sonuçların ve hedeflerinle ilgili sorularını yanıtlamaya hazırım." }],
+        parts: [{ text: wantsPlan ? "Tamam, programı JSON formatında hazırlıyorum." : "Merhaba! Nasılsın? Deneme sonuçların ve hedeflerinle ilgili konuşalım, neye ihtiyacın var?" }],
       },
     ];
 
-    const prevMessages = (body.messages ?? []) as { role: string; content: string }[];
-    for (const m of prevMessages.slice(-6)) {
+    for (const m of prevMessages.slice(-12)) {
       contents.push({
         role: m.role === "user" ? "user" : "model",
         parts: [{ text: m.content }],
@@ -105,8 +118,8 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           contents,
           generationConfig: {
-            maxOutputTokens: 200,
-            temperature: 0.7,
+            maxOutputTokens: wantsPlan ? 2000 : 500,
+            temperature: wantsPlan ? 0.3 : 0.8,
           },
         }),
       }
@@ -119,8 +132,67 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ reply: null, error: errMsg }, { status: 502 });
     }
 
-    const text =
+    let text =
       geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
+
+    if (wantsPlan && text) {
+      let planData: { day: string; tasks: { subject: string; duration_minutes: number; description: string }[] }[] | null = null;
+
+      function extractPlanArray(raw: string): unknown[] | null {
+        const idx = raw.indexOf('"plan"');
+        if (idx < 0) return null;
+        const start = raw.indexOf("[", idx);
+        if (start < 0) return null;
+        let depth = 1;
+        let i = start + 1;
+        while (i < raw.length && depth > 0) {
+          const c = raw[i];
+          if (c === "[") depth++;
+          else if (c === "]") depth--;
+          i++;
+        }
+        if (depth !== 0) return null;
+        const arrStr = raw.slice(start, i);
+        try {
+          return JSON.parse(arrStr) as unknown[];
+        } catch {
+          try {
+            const fixed = arrStr
+              .replace(/duration_surprise/g, "duration_minutes")
+              .replace(/,\s*}/g, "}");
+            return JSON.parse(fixed) as unknown[];
+          } catch {
+            return null;
+          }
+        }
+      }
+
+      const arr = extractPlanArray(text);
+      if (arr && arr.length > 0) {
+        planData = arr
+          .filter((d): d is { day: string; tasks?: unknown[] } => d && typeof d === "object" && "day" in d)
+          .map((d) => ({
+            day: String(d.day),
+            tasks: (Array.isArray(d.tasks) ? d.tasks : [])
+              .filter((t): t is Record<string, unknown> => t && typeof t === "object")
+              .map((t) => ({
+                subject: String(t.subject ?? "Ders"),
+                duration_minutes: Number(t.duration_minutes ?? t.duration ?? 60) || 60,
+                description: String(t.description ?? ""),
+              })),
+          }));
+      }
+
+      if (planData && planData.length > 0) {
+        const summary = planData
+          .map((d) => `**${d.day}:** ${d.tasks.map((t) => `${t.subject} (${t.duration_minutes} dk) - ${t.description}`).join(" | ")}`)
+          .join("\n");
+        return NextResponse.json({
+          reply: summary,
+          plan: planData,
+        });
+      }
+    }
 
     return NextResponse.json({ reply: text });
   } catch (e) {

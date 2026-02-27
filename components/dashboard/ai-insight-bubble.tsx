@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { PracticeExam } from "@/lib/actions/practice-exams";
+import { applyAiPlan } from "@/lib/actions/ai-plan";
+import { revalidateKey } from "@/lib/swr/hooks";
 
 interface AiInsightBubbleProps {
   exams: PracticeExam[];
@@ -9,18 +11,140 @@ interface AiInsightBubbleProps {
   studyField: string | null;
 }
 
+interface AiPlanTask {
+  subject: string;
+  duration_minutes: number;
+  description: string;
+}
+
+interface AiPlanDay {
+  day: string;
+  tasks: AiPlanTask[];
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  plan?: AiPlanDay[];
+}
+
+function ApplyPlanButton({ plan }: { plan: AiPlanDay[] }) {
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [confirming, setConfirming] = useState(false);
+
+  async function handleApply() {
+    setStatus("loading");
+    setConfirming(false);
+    try {
+      const result = await applyAiPlan(plan);
+      if ("error" in result) {
+        setStatus("error");
+      } else {
+        setStatus("done");
+        revalidateKey("weeklyPlan");
+      }
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "done") {
+    return (
+      <p className="mt-2 text-xs font-medium text-emerald-400">
+        Program haftalık plana eklendi! Mevcut görevler silindi.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {confirming ? (
+        <>
+          <p className="text-xs text-amber-400">
+            ⚠ Mevcut görevler silinecektir. Onaylıyor musunuz?
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleApply}
+              disabled={status === "loading"}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/30 disabled:opacity-50"
+            >
+              {status === "loading" ? "Ekleniyor..." : "Evet, Uygula"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={status === "loading"}
+              className="rounded-lg bg-slate-700/50 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-300"
+            >
+              İptal
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-amber-400">⚠ Mevcut görevler silinecektir.</p>
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/30"
+          >
+            Haftalık Plana Ekle
+          </button>
+        </>
+      )}
+      {status === "error" && (
+        <button
+          type="button"
+          onClick={handleApply}
+          className="text-xs text-rose-400 hover:underline"
+        >
+          Hata – Tekrar Dene
+        </button>
+      )}
+    </div>
+  );
+}
+
+const AI_CHAT_STORAGE_KEY = "studylab-ai-chat-messages";
+
+function loadStoredMessages(): ChatMessage[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(AI_CHAT_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (m): m is ChatMessage =>
+        m && typeof m === "object" && "role" in m && "content" in m
+    ) as ChatMessage[];
+  } catch {
+    return [];
+  }
+}
+
+function saveMessages(msgs: ChatMessage[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(msgs));
+  } catch {
+    // ignore
+  }
 }
 
 export function AiInsightBubble({ exams, isPro, studyField }: AiInsightBubbleProps) {
   const [insight, setInsight] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadStoredMessages());
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+
+  useEffect(() => {
+    saveMessages(messages);
+  }, [messages]);
 
   const fetchInsight = useCallback(async () => {
     if (!isPro || exams.length === 0) return;
@@ -84,9 +208,9 @@ export function AiInsightBubble({ exams, isPro, studyField }: AiInsightBubblePro
           studyField,
         }),
       });
-      const data = (await res.json()) as { reply?: string | null; error?: string };
+      const data = (await res.json()) as { reply?: string | null; error?: string; plan?: AiPlanDay[] };
       const reply = data.reply ?? data.error ?? "Üzgünüm, yanıt oluşturamadım.";
-      setMessages((m) => [...m, { role: "assistant" as const, content: reply }]);
+      setMessages((m) => [...m, { role: "assistant" as const, content: reply, plan: data.plan }]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Bağlantı hatası. Lütfen tekrar deneyin.";
       setMessages((m) => [...m, { role: "assistant" as const, content: msg }]);
@@ -158,7 +282,7 @@ export function AiInsightBubble({ exams, isPro, studyField }: AiInsightBubblePro
                   className={`text-sm ${msg.role === "user" ? "text-right" : "text-left"}`}
                 >
                   <span
-                    className={`inline-block max-w-[90%] rounded-xl px-3 py-1.5 ${
+                    className={`inline-block max-w-[90%] whitespace-pre-wrap break-words rounded-xl px-3 py-1.5 ${
                       msg.role === "user"
                         ? "bg-indigo-500/20 text-indigo-200"
                         : "bg-slate-700/50 text-slate-300"
@@ -166,6 +290,9 @@ export function AiInsightBubble({ exams, isPro, studyField }: AiInsightBubblePro
                   >
                     {msg.content}
                   </span>
+                  {msg.plan && msg.plan.length > 0 && (
+                    <ApplyPlanButton plan={msg.plan} />
+                  )}
                 </div>
               ))}
             </div>

@@ -203,43 +203,61 @@ export function StatsCharts({ stats }: StatsChartsProps) {
         <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
           Derse göre dağılım
         </p>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={subjectData}
-                dataKey="toplam"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={90}
-                innerRadius={45}
-                paddingAngle={2}
-                label={({ name, percent }) =>
-                  `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
-                }
-                labelLine={{ stroke: "#475569" }}
-              >
-                {subjectData.map((_, index) => (
-                  <Cell
-                    key={index}
-                    fill={COLORS[index % COLORS.length]}
-                    className="transition-opacity hover:opacity-90"
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <div className="h-56 w-56 shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={subjectData}
+                  dataKey="toplam"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={85}
+                  innerRadius={42}
+                  paddingAngle={2}
+                  label={false}
+                >
+                  {subjectData.map((_, index) => (
+                    <Cell
+                      key={index}
+                      fill={COLORS[index % COLORS.length]}
+                      className="transition-opacity hover:opacity-90"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#0f172a",
+                    border: "1px solid #1e293b",
+                    borderRadius: "12px",
+                    color: "#e2e8f0",
+                    fontSize: "12px",
+                  }}
+                  formatter={(v: number | undefined) => [v ?? 0, "Soru"]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 sm:flex-col sm:gap-y-3">
+            {subjectData.map((item, index) => {
+              const total = subjectData.reduce((s, d) => s + d.toplam, 0);
+              const pct = total > 0 ? ((item.toplam / total) * 100).toFixed(0) : "0";
+              return (
+                <div key={item.name} className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-3 w-3 shrink-0 rounded-sm"
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#0f172a",
-                  border: "1px solid #1e293b",
-                  borderRadius: "12px",
-                  color: "#e2e8f0",
-                  fontSize: "12px",
-                }}
-                formatter={(v: number | undefined) => [v ?? 0, "Soru"]}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+                  <span className="text-sm text-slate-300">
+                    {item.name}{" "}
+                    <span className="font-semibold text-white">{pct}%</span>
+                    <span className="ml-1 text-xs text-slate-500">({item.toplam})</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
