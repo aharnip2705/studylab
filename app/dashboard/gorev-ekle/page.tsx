@@ -14,6 +14,29 @@ import { Video, FileQuestion, ClipboardList, Search, Plus, Clock, ChevronDown, T
 
 type TaskType = "video" | "test" | "deneme";
 
+// Ders adı veya kitap adında geçen anahtar kelimeler — filtreleme için
+const SUBJECT_FILTER_KEYWORDS: Record<string, string[]> = {
+  "matematik": ["matematik", "geometri", "türev", "integral", "problem", "polinom", "fonksiyon", "üçgen", "analitik"],
+  "geometri": ["geometri", "üçgen", "açı", "alan", "çevre", "analitik geometri"],
+  "fizik": ["fizik", "kuvvet", "hareket", "elektrik", "optik", "dalga", "enerji"],
+  "kimya": ["kimya", "asit", "baz", "tuz", "organik", "mol", "element", "bileşik"],
+  "biyoloji": ["biyoloji", "hücre", "genetik", "ekosistem", "canlı"],
+  "türkçe": ["türkçe", "türk dili", "fiilimsi", "paragraf", "sözcük", "anlam", "dil bilgisi"],
+  "tarih": ["tarih", "osmanlı", "cumhuriyet", "inkılap"],
+  "coğrafya": ["coğrafya", "iklim", "nüfus", "harita"],
+  "felsefe": ["felsefe", "mantık", "psikoloji", "sosyoloji"],
+  "edebiyat": ["edebiyat", "şiir", "roman", "hikaye", "divan"],
+};
+
+function resourceMatchesSubject(resourceName: string, subjectName: string): boolean {
+  const name = resourceName.toLowerCase();
+  const subj = subjectName.toLowerCase();
+  if (name.includes(subj)) return true;
+  const keywords = SUBJECT_FILTER_KEYWORDS[subj];
+  if (keywords) return keywords.some((kw) => name.includes(kw));
+  return false;
+}
+
 const DAY_NAMES = [
   "Pazartesi",
   "Salı",
@@ -55,6 +78,7 @@ interface Resource {
   name: string;
   icon_url?: string | null;
   publisher_id?: string | null;
+  subject_id?: string | null;
 }
 
 interface Subject {
@@ -622,9 +646,18 @@ export default function GorevEklePage() {
   }
 
   const allResourcesByType = taskType === "deneme" ? denemeResources : dersResources;
-  const currentResources = selectedPublisherId
+  const resourcesForPublisher = selectedPublisherId
     ? allResourcesByType.filter((r) => r.publisher_id === selectedPublisherId)
     : [];
+  // Test/video: Filter by subject — subject_id match OR name contains subject / keywords
+  const selectedSubject = subjectId ? subjects.find((s) => s.id === subjectId) : null;
+  const currentResources =
+    taskType !== "deneme" && subjectId && selectedSubject?.name
+      ? resourcesForPublisher.filter((r) => {
+          if (r.subject_id) return r.subject_id === subjectId;
+          return resourceMatchesSubject(r.name ?? "", selectedSubject.name);
+        })
+      : resourcesForPublisher;
 
   if (success) {
     return (

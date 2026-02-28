@@ -4,6 +4,35 @@ import { useState, useEffect } from "react";
 import { addResource } from "@/lib/actions/admin-resources";
 
 type Publisher = { id: string; name: string; logo_url?: string | null };
+type Subject = { id: string; name: string };
+
+const SUBJECT_KEYWORDS: Record<string, string[]> = {
+  "matematik": ["matematik", "math", "sayısal", "türev", "integral", "geometri", "üçgen", "polinomlar", "fonksiyon"],
+  "türkçe": ["türkçe", "türk dili", "fiilimsi", "paragraf", "sözcük", "anlam"],
+  "fizik": ["fizik", "kuvvet", "hareket", "elektrik", "optik", "dalgalar"],
+  "kimya": ["kimya", "asit", "baz", "tuz", "organik", "mol", "element"],
+  "biyoloji": ["biyoloji", "hücre", "genetik", "ekosistem", "canlı"],
+  "tarih": ["tarih", "osmanlı", "cumhuriyet", "inkılap"],
+  "coğrafya": ["coğrafya", "iklim", "nüfus", "harita"],
+  "felsefe": ["felsefe", "mantık", "psikoloji", "sosyoloji"],
+  "edebiyat": ["edebiyat", "şiir", "roman", "hikaye", "divan"],
+  "geometri": ["geometri", "üçgen", "alan", "çevre", "açı"],
+};
+
+function guessSubjectFromName(name: string, subjects: Subject[]): string {
+  const norm = name.toLowerCase();
+  for (const subj of subjects) {
+    const sNorm = subj.name.toLowerCase();
+    if (norm.includes(sNorm)) return subj.id;
+  }
+  for (const [subjKey, keywords] of Object.entries(SUBJECT_KEYWORDS)) {
+    if (keywords.some((kw) => norm.includes(kw))) {
+      const match = subjects.find((s) => s.name.toLowerCase().includes(subjKey));
+      if (match) return match.id;
+    }
+  }
+  return "";
+}
 
 function findPublisherByName(resourceName: string, publishers: Publisher[]): Publisher | null {
   const norm = resourceName.trim().toLowerCase();
@@ -17,11 +46,12 @@ function findPublisherByName(resourceName: string, publishers: Publisher[]): Pub
   return null;
 }
 
-export function AdminResourceForm({ publishers }: { publishers: Publisher[] }) {
+export function AdminResourceForm({ publishers, subjects = [] }: { publishers: Publisher[]; subjects?: Subject[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [selectedPublisherId, setSelectedPublisherId] = useState("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [iconUrl, setIconUrl] = useState("");
   const [resourceName, setResourceName] = useState("");
 
@@ -38,7 +68,12 @@ export function AdminResourceForm({ publishers }: { publishers: Publisher[] }) {
       setSelectedPublisherId(match.id);
       if (match.logo_url) setIconUrl(match.logo_url);
     }
-  }, [resourceName, publishers]);
+    // Auto-detect subject from name
+    if (resourceName && subjects.length > 0) {
+      const guessed = guessSubjectFromName(resourceName, subjects);
+      if (guessed) setSelectedSubjectId(guessed);
+    }
+  }, [resourceName, publishers, subjects]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -58,6 +93,7 @@ export function AdminResourceForm({ publishers }: { publishers: Publisher[] }) {
       resource_type: (fd.get("resource_type") as "soru_bankasi" | "video_ders_kitabi" | "deneme_sinavi" | "diger") || "soru_bankasi",
       publisher_id,
       icon_url,
+      subject_id: selectedSubjectId || null,
     });
     setLoading(false);
     if (res.error) setError(res.error);
@@ -66,6 +102,7 @@ export function AdminResourceForm({ publishers }: { publishers: Publisher[] }) {
       form.reset();
       setIconUrl("");
       setSelectedPublisherId("");
+      setSelectedSubjectId("");
       setResourceName("");
     }
   }
@@ -158,6 +195,24 @@ export function AdminResourceForm({ publishers }: { publishers: Publisher[] }) {
             <option value="diger">Diğer</option>
           </select>
         </div>
+        {subjects.length > 0 && (
+          <div>
+            <label htmlFor="subject_id" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Ders <span className="text-slate-400">(otomatik algılanır, değiştirebilirsiniz)</span>
+            </label>
+            <select
+              id="subject_id"
+              value={selectedSubjectId}
+              onChange={(e) => setSelectedSubjectId(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+            >
+              <option value="">Ders seçin (opsiyonel)</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="sm:col-span-2">
           <label htmlFor="icon_url" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
             Yayınevi logosu (URL veya yukarıdaki yayın evi logosu kullanılır)

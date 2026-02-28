@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getProfile, updateStudyField } from "@/lib/actions/profile";
+import { getProfile, updateStudyField, updateTargetNets } from "@/lib/actions/profile";
 import { STUDY_FIELD_OPTIONS, type StudyField } from "@/lib/study-field";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +13,8 @@ interface ProfileAndFieldFormProps {
 
 export function ProfileAndFieldForm({ fullName, email }: ProfileAndFieldFormProps) {
   const [studyField, setStudyField] = useState<StudyField | "">("");
+  const [tytTarget, setTytTarget] = useState("");
+  const [aytTarget, setAytTarget] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -22,7 +24,10 @@ export function ProfileAndFieldForm({ fullName, email }: ProfileAndFieldFormProp
     async function load() {
       setLoading(true);
       const profile = await getProfile();
-      setStudyField((profile as { study_field?: StudyField } | null)?.study_field ?? "esit_agirlik");
+      const p = profile as { study_field?: StudyField; tyt_target_net?: number | null; ayt_target_net?: number | null } | null;
+      setStudyField(p?.study_field ?? "esit_agirlik");
+      setTytTarget(p?.tyt_target_net != null ? String(p.tyt_target_net) : "");
+      setAytTarget(p?.ayt_target_net != null ? String(p.ayt_target_net) : "");
       setLoading(false);
     }
     load();
@@ -33,12 +38,18 @@ export function ProfileAndFieldForm({ fullName, email }: ProfileAndFieldFormProp
     if (!studyField) return;
     setSaving(true);
     setMessage(null);
-    const result = await updateStudyField(studyField as StudyField);
+    const [r1, r2] = await Promise.all([
+      updateStudyField(studyField as StudyField),
+      updateTargetNets(
+        tytTarget !== "" ? parseFloat(tytTarget) : null,
+        aytTarget !== "" ? parseFloat(aytTarget) : null
+      ),
+    ]);
     setSaving(false);
-    if (result.error) {
-      setMessage({ type: "error", text: result.error });
+    if (r1.error || r2.error) {
+      setMessage({ type: "error", text: r1.error ?? r2.error ?? "Hata oluştu" });
     } else {
-      setMessage({ type: "success", text: "Ayarlar kaydedildi. Panel güncellendi." });
+      setMessage({ type: "success", text: "Ayarlar kaydedildi." });
       router.refresh();
     }
   }
@@ -82,6 +93,43 @@ export function ProfileAndFieldForm({ fullName, email }: ProfileAndFieldFormProp
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="border-t border-slate-200 pt-6 dark:border-slate-700">
+        <h3 className="mb-2 text-base font-semibold text-slate-900 dark:text-white">Nihai Net Hedefleri</h3>
+        <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+          Her deneme eklerken hedef sorulmaz; buradan bir kez belirleyin.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">TYT Net Hedefi</label>
+            <input
+              type="number"
+              min={0}
+              max={120}
+              step={0.25}
+              value={tytTarget}
+              onChange={(e) => setTytTarget(e.target.value)}
+              placeholder="örn: 100"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+            />
+            <p className="mt-1 text-xs text-slate-500">Maks 120</p>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">AYT Net Hedefi</label>
+            <input
+              type="number"
+              min={0}
+              max={160}
+              step={0.25}
+              value={aytTarget}
+              onChange={(e) => setAytTarget(e.target.value)}
+              placeholder="örn: 100"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+            />
+            <p className="mt-1 text-xs text-slate-500">Maks 160</p>
+          </div>
+        </div>
       </div>
       {message && (
         <p

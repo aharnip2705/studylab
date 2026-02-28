@@ -116,13 +116,23 @@ export async function getResources(type: "ders" | "deneme" = "ders") {
   const types = type === "deneme"
     ? ["deneme_sinavi"]
     : ["soru_bankasi", "video_ders_kitabi", "diger"];
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("resources")
-    .select("id, name, icon_url, publisher_id")
+    .select("id, name, icon_url, publisher_id, subject_id")
     .eq("program_id", PROGRAM_ID)
     .in("resource_type", types)
     .order("name");
-  return data ?? [];
+  if (error) {
+    // subject_id column may not exist yet — fallback without it
+    const { data: fallback } = await supabase
+      .from("resources")
+      .select("id, name, icon_url, publisher_id")
+      .eq("program_id", PROGRAM_ID)
+      .in("resource_type", types)
+      .order("name");
+    return (fallback ?? []).map((r) => ({ ...r, subject_id: null as string | null }));
+  }
+  return (data ?? []).map((r) => ({ ...r, subject_id: (r as { subject_id?: string | null }).subject_id ?? null }));
 }
 
 export async function getUserResources() {

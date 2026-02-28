@@ -57,11 +57,8 @@ body {
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
-[data-custom-bg-wrap] .dashboard-main-bg {
-  background-color: rgb(248 250 252 / 0.78) !important;
-}
-.dark [data-custom-bg-wrap] .dashboard-main-bg {
-  background-color: rgb(15 23 42 / 0.75) !important;
+[data-custom-bg="true"] .dashboard-main-bg {
+  background: transparent !important;
 }
 
 /* ─── Apple-style UI Animasyonları ─── */

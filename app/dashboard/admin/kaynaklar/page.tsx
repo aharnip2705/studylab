@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getIsAdmin } from "@/lib/actions/profile";
 import { getAdminResources, getAdminPublishers } from "@/lib/actions/admin-resources";
+import { getAdminSubjects } from "@/lib/actions/admin-subjects";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AdminPublishersList } from "./admin-publishers-list";
@@ -12,7 +13,9 @@ import { AdminSyncBilgiSarmal } from "./admin-sync-bilgi-sarmal";
 export default async function AdminKaynaklarPage() {
   const isAdmin = await getIsAdmin();
   if (!isAdmin) redirect("/dashboard");
-  const [publishers, resources] = await Promise.all([getAdminPublishers(), getAdminResources()]);
+  const [publishers, resources, subjects] = await Promise.all([
+    getAdminPublishers(), getAdminResources(), getAdminSubjects(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -33,7 +36,7 @@ export default async function AdminKaynaklarPage() {
       </section>
       <section>
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Yeni Kaynak Ekle</h2>
-        <AdminResourceForm publishers={publishers} />
+        <AdminResourceForm publishers={publishers} subjects={subjects} />
       </section>
       <section>
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Bot verilerini içe aktar</h2>
@@ -45,7 +48,7 @@ export default async function AdminKaynaklarPage() {
       </section>
       <section>
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Mevcut Kaynaklar</h2>
-        <AdminResourceList resources={resources} publishers={publishers} />
+        <AdminResourceList resources={resources} publishers={publishers} subjects={subjects} />
       </section>
     </div>
   );

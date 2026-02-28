@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { TaskDetailModal } from "./task-detail-modal";
 import { cn } from "@/lib/utils";
-import { Video, FileQuestion, ClipboardList } from "lucide-react";
+import { Video, FileQuestion, ClipboardList, Timer } from "lucide-react";
 
 type TaskType = "video" | "test" | "deneme";
 type Status = "tamamlanmadi" | "kismen_tamamlandi" | "tamamlandi";
@@ -25,7 +25,7 @@ interface TaskCardProps {
 const typeIcons = {
   video: Video,
   test: FileQuestion,
-  deneme: ClipboardList,
+  deneme: Timer,
 };
 
 const typeLabels = {
@@ -57,7 +57,7 @@ export function TaskCard({
   const [iconError, setIconError] = useState(false);
 
   const Icon = typeIcons[taskType];
-  const showSubjectIcon = subjectIconUrl && !iconError;
+  const showSubjectIcon = taskType !== "deneme" && subjectIconUrl && !iconError;
   const desc =
     taskType === "video"
       ? resourceName || "Video dersi"

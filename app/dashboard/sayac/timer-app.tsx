@@ -81,6 +81,19 @@ export function TimerApp() {
   const longBreakMin = state.longBreakMin;
   const countdownMin = state.countdownMin;
   const countdownSec = state.countdownSec;
+
+  // Pomodoro input string states (to allow clearing/typing freely)
+  const [workMinStr, setWorkMinStr] = useState(String(workMin));
+  const [shortBreakStr, setShortBreakStr] = useState(String(shortBreakMin));
+  const [longBreakStr, setLongBreakStr] = useState(String(longBreakMin));
+  const [countdownMinStr, setCountdownMinStr] = useState(String(countdownMin));
+  const [countdownSecStr, setCountdownSecStr] = useState(String(countdownSec));
+
+  useEffect(() => { setWorkMinStr(String(workMin)); }, [workMin]);
+  useEffect(() => { setShortBreakStr(String(shortBreakMin)); }, [shortBreakMin]);
+  useEffect(() => { setLongBreakStr(String(longBreakMin)); }, [longBreakMin]);
+  useEffect(() => { setCountdownMinStr(String(countdownMin)); }, [countdownMin]);
+  useEffect(() => { setCountdownSecStr(String(countdownSec)); }, [countdownSec]);
   const secondsLeft = state.secondsLeft;
   const stopwatchSec = state.stopwatchSec;
   const isRunning = state.isRunning;
@@ -132,11 +145,11 @@ export function TimerApp() {
           <label className="flex items-center gap-2">
             <span>Çalışma (dk):</span>
             <input
-              type="number"
-              min={1}
-              max={60}
-              value={workMin}
-              onChange={(e) => setWorkMin(Number(e.target.value))}
+              type="text"
+              inputMode="numeric"
+              value={workMinStr}
+              onChange={(e) => setWorkMinStr(e.target.value.replace(/\D/g, ""))}
+              onBlur={() => { const v = Math.max(1, Math.min(60, Number(workMinStr) || 1)); setWorkMin(v); setWorkMinStr(String(v)); }}
               disabled={isRunning}
               className={`w-16 rounded px-2 py-1 text-center ${useLightStyles ? "bg-slate-300/60" : "bg-white/20"}`}
             />
@@ -144,11 +157,11 @@ export function TimerApp() {
           <label className="flex items-center gap-2">
             <span>Kısa mola (dk):</span>
             <input
-              type="number"
-              min={1}
-              max={30}
-              value={shortBreakMin}
-              onChange={(e) => setShortBreakMin(Number(e.target.value))}
+              type="text"
+              inputMode="numeric"
+              value={shortBreakStr}
+              onChange={(e) => setShortBreakStr(e.target.value.replace(/\D/g, ""))}
+              onBlur={() => { const v = Math.max(1, Math.min(30, Number(shortBreakStr) || 1)); setShortBreakMin(v); setShortBreakStr(String(v)); }}
               disabled={isRunning}
               className={`w-16 rounded px-2 py-1 text-center ${useLightStyles ? "bg-slate-300/60" : "bg-white/20"}`}
             />
@@ -156,11 +169,11 @@ export function TimerApp() {
           <label className="flex items-center gap-2">
             <span>Uzun mola (dk):</span>
             <input
-              type="number"
-              min={1}
-              max={60}
-              value={longBreakMin}
-              onChange={(e) => setLongBreakMin(Number(e.target.value))}
+              type="text"
+              inputMode="numeric"
+              value={longBreakStr}
+              onChange={(e) => setLongBreakStr(e.target.value.replace(/\D/g, ""))}
+              onBlur={() => { const v = Math.max(1, Math.min(60, Number(longBreakStr) || 1)); setLongBreakMin(v); setLongBreakStr(String(v)); }}
               disabled={isRunning}
               className={`w-16 rounded px-2 py-1 text-center ${useLightStyles ? "bg-slate-300/60" : "bg-white/20"}`}
             />
@@ -178,11 +191,11 @@ export function TimerApp() {
           <label className="flex items-center gap-2">
             <span>Dakika:</span>
             <input
-              type="number"
-              min={0}
-              max={99}
-              value={countdownMin}
-              onChange={(e) => setCountdownMin(Number(e.target.value))}
+              type="text"
+              inputMode="numeric"
+              value={countdownMinStr}
+              onChange={(e) => setCountdownMinStr(e.target.value.replace(/\D/g, ""))}
+              onBlur={() => { const v = Math.max(0, Math.min(99, Number(countdownMinStr) || 0)); setCountdownMin(v); setCountdownMinStr(String(v)); }}
               disabled={isRunning}
               className={`w-16 rounded px-2 py-1 text-center ${useLightStyles ? "bg-slate-300/60" : "bg-white/20"}`}
             />
@@ -190,11 +203,11 @@ export function TimerApp() {
           <label className="flex items-center gap-2">
             <span>Saniye:</span>
             <input
-              type="number"
-              min={0}
-              max={59}
-              value={countdownSec}
-              onChange={(e) => setCountdownSec(Number(e.target.value))}
+              type="text"
+              inputMode="numeric"
+              value={countdownSecStr}
+              onChange={(e) => setCountdownSecStr(e.target.value.replace(/\D/g, ""))}
+              onBlur={() => { const v = Math.max(0, Math.min(59, Number(countdownSecStr) || 0)); setCountdownSec(v); setCountdownSecStr(String(v)); }}
               disabled={isRunning}
               className={`w-16 rounded px-2 py-1 text-center ${useLightStyles ? "bg-slate-300/60" : "bg-white/20"}`}
             />
@@ -209,7 +222,20 @@ export function TimerApp() {
       <div className="flex justify-center gap-4">
         <button
           type="button"
-          onClick={handleStartPause}
+          onClick={() => {
+            if (mode === "countdown") {
+              (document.activeElement as HTMLInputElement | null)?.blur();
+              const m = Math.max(0, Math.min(99, Number(countdownMinStr) || 0));
+              const s = Math.max(0, Math.min(59, Number(countdownSecStr) || 0));
+              setCountdownMin(m);
+              setCountdownMinStr(String(m));
+              setCountdownSec(s);
+              setCountdownSecStr(String(s));
+              setTimeout(() => handleStartPause(), 0);
+            } else {
+              handleStartPause();
+            }
+          }}
           className={`flex items-center gap-2 rounded-xl px-6 py-3 font-medium ${useLightStyles ? "bg-slate-300/60 hover:bg-slate-400/60" : "bg-white/20 hover:bg-white/30"}`}
         >
           {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}

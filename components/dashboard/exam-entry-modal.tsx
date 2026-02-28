@@ -27,7 +27,6 @@ export function ExamEntryModal({
   const [totalCorrect, setTotalCorrect] = useState("");
   const [totalWrong, setTotalWrong] = useState("");
   const [totalTime, setTotalTime] = useState("");
-  const [netTarget, setNetTarget] = useState("");
   const [showDetails, setShowDetails] = useState(false);
   const [subjectDetails, setSubjectDetails] = useState<
     Record<string, { correct: string; wrong: string }>
@@ -136,7 +135,7 @@ export function ExamEntryModal({
       total_correct: c,
       total_wrong: w,
       total_time_minutes: t,
-      net_target: netTarget ? parseFloat(netTarget) : null,
+      net_target: null,
       subject_details: Object.keys(detailsPayload).length > 0 ? detailsPayload : null,
     });
 
@@ -156,7 +155,6 @@ export function ExamEntryModal({
     setTotalCorrect("");
     setTotalWrong("");
     setTotalTime("");
-    setNetTarget("");
     setShowDetails(false);
     setError("");
   }
@@ -256,35 +254,19 @@ export function ExamEntryModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">
-                Süre (dk) <span className="text-slate-600">varsayılan {defaultTime}</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={totalTime}
-                onChange={(e) => setTotalTime(e.target.value)}
-                placeholder={String(defaultTime)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">
-                Net Hedefi <span className="text-slate-600">opsiyonel</span>
-              </label>
-              <input
-                type="number"
-                min={0}
-                step={0.25}
-                max={config.totalQuestions}
-                value={netTarget}
-                onChange={(e) => setNetTarget(e.target.value)}
-                placeholder="örn: 80"
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
-              />
-            </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-400">
+              Süre (dk) <span className="text-slate-600">varsayılan {defaultTime}</span>
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={totalTime}
+              onChange={(e) => setTotalTime(e.target.value)}
+              placeholder={String(defaultTime)}
+              className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+            />
+            <p className="mt-1 text-xs text-slate-600">Net hedefini Ayarlar sayfasından belirleyebilirsiniz.</p>
           </div>
 
           {/* Subject Details Toggle */}

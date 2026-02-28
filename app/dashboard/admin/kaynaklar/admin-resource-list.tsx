@@ -3,13 +3,17 @@
 import { useState } from "react";
 import { updateResource, deleteResource, deleteResources } from "@/lib/actions/admin-resources";
 
+type Subject = { id: string; name: string };
+
 type Resource = {
   id: string;
   name: string;
   resource_type: string;
   icon_url?: string | null;
   publisher_id?: string | null;
+  subject_id?: string | null;
   publishers?: { id: string; name: string } | { id: string; name: string }[] | null;
+  subjects?: Subject | Subject[] | null;
 };
 
 type Publisher = { id: string; name: string };
@@ -17,9 +21,11 @@ type Publisher = { id: string; name: string };
 export function AdminResourceList({
   resources,
   publishers,
+  subjects = [],
 }: {
   resources: Resource[];
   publishers: Publisher[];
+  subjects?: Subject[];
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +33,7 @@ export function AdminResourceList({
   const [editName, setEditName] = useState("");
   const [editType, setEditType] = useState<"soru_bankasi" | "video_ders_kitabi" | "deneme_sinavi" | "diger">("soru_bankasi");
   const [editPublisherId, setEditPublisherId] = useState("");
+  const [editSubjectId, setEditSubjectId] = useState("");
   const [editIconUrl, setEditIconUrl] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -72,6 +79,7 @@ export function AdminResourceList({
     const rt = r.resource_type as "soru_bankasi" | "video_ders_kitabi" | "deneme_sinavi" | "diger";
     setEditType(rt && ["soru_bankasi", "video_ders_kitabi", "deneme_sinavi", "diger"].includes(rt) ? rt : "soru_bankasi");
     setEditPublisherId(r.publisher_id ?? "");
+    setEditSubjectId(r.subject_id ?? "");
     setEditIconUrl(r.icon_url ?? "");
   }
 
@@ -85,6 +93,7 @@ export function AdminResourceList({
       name: editName.trim(),
       resource_type: editType,
       publisher_id: editPublisherId || null,
+      subject_id: editSubjectId || null,
       icon_url,
     });
     setLoading(false);
@@ -146,6 +155,7 @@ export function AdminResourceList({
               <th className="p-3 font-medium">Görsel</th>
               <th className="p-3 font-medium">Yayın evi</th>
               <th className="p-3 font-medium">Kaynak Adı</th>
+              <th className="p-3 font-medium">Ders</th>
               <th className="p-3 font-medium">Tip</th>
               <th className="p-3 font-medium">İşlem</th>
             </tr>
@@ -197,6 +207,24 @@ export function AdminResourceList({
                     />
                   ) : (
                     r.name
+                  )}
+                </td>
+                <td className="p-3">
+                  {editingId === r.id ? (
+                    <select
+                      value={editSubjectId}
+                      onChange={(e) => setEditSubjectId(e.target.value)}
+                      className="rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    >
+                      <option value="">—</option>
+                      {subjects.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {(Array.isArray(r.subjects) ? r.subjects[0]?.name : (r.subjects as Subject)?.name) ?? "—"}
+                    </span>
                   )}
                 </td>
                 <td className="p-3">

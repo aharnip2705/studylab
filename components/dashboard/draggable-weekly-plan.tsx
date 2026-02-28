@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { moveTask } from "@/lib/actions/plans";
 import { TaskCard } from "./task-card";
@@ -35,8 +35,19 @@ interface DraggableWeeklyPlanProps {
   onMutate?: () => void;
 }
 
+function getTodayDateStr(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function DraggableWeeklyPlan({ planId, days, initialTasksByDateRecord, onMutate }: DraggableWeeklyPlanProps) {
   const router = useRouter();
+  const todayStr = getTodayDateStr();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const todayColumnRef = useRef<HTMLDivElement>(null);
   const [tasksByDate, setTasksByDate] = useState<Map<string, Task[]>>(
     () => new Map(Object.entries(initialTasksByDateRecord ?? {}))
   );
@@ -44,6 +55,17 @@ export function DraggableWeeklyPlan({ planId, days, initialTasksByDateRecord, on
   useEffect(() => {
     setTasksByDate(new Map(Object.entries(initialTasksByDateRecord ?? {})));
   }, [initialTasksByDateRecord]);
+
+  // Auto-scroll to today on mount (mobile)
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const todayCol = todayColumnRef.current;
+    if (!container || !todayCol) return;
+    const containerLeft = container.getBoundingClientRect().left;
+    const colLeft = todayCol.getBoundingClientRect().left;
+    const scrollOffset = container.scrollLeft + (colLeft - containerLeft) - 16;
+    container.scrollTo({ left: scrollOffset, behavior: "smooth" });
+  }, []);
 
   const handleTaskDeleted = useCallback((taskId: string) => {
     setTasksByDate((prev) => {
@@ -109,26 +131,35 @@ export function DraggableWeeklyPlan({ planId, days, initialTasksByDateRecord, on
   );
 
   return (
-    <div className="weekly-plan-scroll -mx-2 snap-x snap-mandatory overflow-x-auto px-2 pb-2 scroll-smooth">
+    <div ref={scrollContainerRef} className="weekly-plan-scroll -mx-2 snap-x snap-mandatory overflow-x-auto px-2 pb-2 scroll-smooth">
       <div className="flex gap-4">
         {days.map((day, idx) => {
           const dayTasks = tasksByDate.get(day.date) ?? [];
           const isDragOver = dragOverDate === day.date;
+          const isToday = day.date === todayStr;
           return (
             <div
               key={day.date}
+              ref={isToday ? todayColumnRef : undefined}
               onDragOver={(e) => handleDragOver(e, day.date)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, day.date)}
               style={{ animationDelay: `${idx * 40}ms` }}
-              className={`animate-item-in flex min-w-[280px] snap-start flex-col rounded-xl border-2 p-3 transition-colors ${
+              className={`animate-item-in flex min-w-[280px] snap-start flex-col rounded-xl p-3 transition-colors ${
                 isDragOver
-                  ? "border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-900/20"
-                  : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                  ? "border-2 border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-900/20"
+                  : isToday
+                    ? "border-2 border-indigo-500 bg-indigo-50/40 shadow-lg shadow-indigo-500/10 dark:border-indigo-400 dark:bg-indigo-900/20"
+                    : "border-2 border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
               }`}
             >
-              <div className="mb-3 flex shrink-0 items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
-                <span className="font-medium text-slate-900 dark:text-white">{day.dayName}</span>
+              <div className={`mb-3 flex shrink-0 items-center justify-between border-b pb-2 ${isToday ? "border-indigo-200 dark:border-indigo-700/50" : "border-slate-200 dark:border-slate-700"}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`font-semibold ${isToday ? "text-indigo-600 dark:text-indigo-400" : "text-slate-900 dark:text-white"}`}>{day.dayName}</span>
+                  {isToday && (
+                    <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-bold text-white">Bugün</span>
+                  )}
+                </div>
                 <span className="shrink-0 text-xs text-slate-500">{formatDate(day.date)}</span>
               </div>
               <div className="min-h-[80px] flex-1 space-y-2 overflow-y-auto weekly-plan-scroll">
@@ -145,7 +176,7 @@ export function DraggableWeeklyPlan({ planId, days, initialTasksByDateRecord, on
                     >
                       <TaskCard
                         id={task.id}
-                        subjectName={(task.subjects as { name?: string } | null)?.name ?? "Ders"}
+                        subjectName={task.task_type === "deneme" ? "Deneme" : ((task.subjects as { name?: string } | null)?.name ?? "Ders")}
                         subjectIconUrl={(task.subjects as { icon_url?: string | null } | null)?.icon_url ?? null}
                         taskType={task.task_type}
                         resourceName={

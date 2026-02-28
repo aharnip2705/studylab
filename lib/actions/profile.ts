@@ -12,16 +12,41 @@ export async function getProfile() {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("study_field, full_name")
+      .select("study_field, full_name, tyt_target_net, ayt_target_net")
       .eq("id", user.id)
       .single();
 
     if (error) {
-      return { study_field: "esit_agirlik" as StudyField, full_name: null };
+      return { study_field: "esit_agirlik" as StudyField, full_name: null, tyt_target_net: null, ayt_target_net: null };
     }
     return data;
   } catch {
-    return { study_field: "esit_agirlik" as StudyField, full_name: null };
+    return { study_field: "esit_agirlik" as StudyField, full_name: null, tyt_target_net: null, ayt_target_net: null };
+  }
+}
+
+export async function updateTargetNets(tytTargetNet: number | null, aytTargetNet: number | null) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Oturum açmanız gerekiyor" };
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ tyt_target_net: tytTargetNet, ayt_target_net: aytTargetNet, updated_at: new Date().toISOString() })
+      .eq("id", user.id);
+
+    if (error) {
+      if (error.message.includes("column") && error.message.includes("does not exist")) {
+        return { error: "Veritabanına tyt_target_net ve ayt_target_net sütunları eklenmeli. Supabase SQL Editor'dan: ALTER TABLE profiles ADD COLUMN IF NOT EXISTS tyt_target_net numeric, ADD COLUMN IF NOT EXISTS ayt_target_net numeric;" };
+      }
+      return { error: error.message };
+    }
+    revalidatePath("/dashboard/ayarlar");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch {
+    return { error: "Bir hata oluştu." };
   }
 }
 

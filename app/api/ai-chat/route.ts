@@ -61,10 +61,20 @@ export async function POST(req: NextRequest) {
       const lines = exams
         .map((e, i) => {
           const net = e.correct - e.wrong * 0.25;
-          return `${i + 1}. ${e.name} (${e.type}) - ${net.toFixed(1)} net, ${e.correct}D/${e.wrong}Y, ${e.time} dk`;
+          let line = `${i + 1}. ${e.name} (${e.type}) - ${net.toFixed(1)} net, ${e.correct}D/${e.wrong}Y, ${e.time} dk`;
+          if (e.subject_details && Object.keys(e.subject_details).length > 0) {
+            const details = Object.entries(e.subject_details)
+              .map(([subj, d]) => {
+                const sNet = d.correct - d.wrong * 0.25;
+                return `${subj}: ${sNet.toFixed(1)} net (${d.correct}D/${d.wrong}Y)`;
+              })
+              .join(" | ");
+            line += `\n   Ders detayı: ${details}`;
+          }
+          return line;
         })
         .join("\n");
-      contextParts.push(`Öğrencinin son deneme sonuçları:\n${lines}`);
+      contextParts.push(`Öğrencinin son deneme sonuçları (veriye dayanarak konuş):\n${lines}`);
     }
     if (studyField) contextParts.push(`Alan: ${studyField}`);
 
@@ -75,16 +85,19 @@ export async function POST(req: NextRequest) {
     const prevMessages = (body.messages ?? []) as { role: string; content: string }[];
     const recentUserText = [...prevMessages].reverse().find((m) => m.role === "user")?.content ?? "";
 
-    const wantsPlan =
-      /program\s*oluştur|program\s*hazırla|plan\s*oluştur|plan\s*hazırla|haftalık\s*plan|program\s*yap|e\s+hadi\s+oluştur|oluştur\s+program|hazırla\s+program/i.test(message) ||
+    const isPlanRequest =
+      /program\s*oluştur|program\s*hazırla|plan\s*oluştur|plan\s*hazırla|haftalık\s*plan|program\s*yap|e\s+hadi\s+oluştur|oluştur\s+program|hazırla\s+program|hafta\s*için\s*program|bu\s*hafta\s*için|tyt\s*için\s*program|ayt\s*için\s*program/i.test(message) ||
       /^(e\s+)?hadi\s+(oluştur|hazırla|yap)|^(evet\s+)?oluştur|^(tamam\s+)?hazırla$/i.test(message.trim()) ||
       (recentUserText.length > 20 && /program|plan|haftalık/i.test(recentUserText) && /^(evet|e|tamam|hadi|olur|olsun)/i.test(message.trim()));
 
-    const systemPrompt = wantsPlan
-      ? `Sen sıcak ve samimi bir YKS hazırlık koçusun.${systemContext}
-Öğrenci haftalık çalışma programı istiyor. SADECE aşağıdaki JSON formatında cevap ver. Başka hiçbir metin, açıklama veya markdown ekleme. Cevabın tek başına geçerli bir JSON olsun:
-{"plan":[{"day":"Pazartesi","tasks":[{"subject":"Türkçe","duration_minutes":90,"description":"Fiilimsiler konu tekrarı ve soru çözümü"}]},{"day":"Salı","tasks":[]},...]}
-Haftanın 7 günü: Pazartesi, Salı, Çarşamba, Perşembe, Cuma, Cumartesi, Pazar. Her gün 2-4 görev. subject: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe, Sosyal gibi ders adları kullan. duration_minutes sayı olmalı. description kısa ve net olsun.`
+    const systemPrompt = isPlanRequest
+      ? `Sen veri odaklı bir YKS hazırlık koçusun.${systemContext}
+Öğrenci haftalık çalışma programı istiyor. Öğrenci mesajındaki net sayılarını ve belirttiği konuları (örn: fiilimsi, problemler, kaldırma kuvveti, asitler bazlar tuzlar, ekosistem) MUTLAKA kullan. Zayıf derslere daha fazla süre ayır.
+
+YANITIN SADECE AŞAĞIDAKİ JSON OLSUN. Markdown, açıklama, \`\`\`json veya başka metin EKLEME. Tek başına geçerli JSON döndür:
+{"plan":[{"day":"Pazartesi","tasks":[{"subject":"Türkçe","duration_minutes":90,"description":"Fiilimsiler konu tekrarı ve soru çözümü"}]},{"day":"Salı","tasks":[{"subject":"Matematik","duration_minutes":120,"description":"Problemler - oran orantı soru çözümü"}]},{"day":"Çarşamba","tasks":[]},{"day":"Perşembe","tasks":[]},{"day":"Cuma","tasks":[]},{"day":"Cumartesi","tasks":[]},{"day":"Pazar","tasks":[]}]}
+
+Kurallar: Haftanın 7 günü (Pazartesi-Pazar). Her günde 2-4 görev. subject: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe, Sosyal. duration_minutes tam sayı (60-120 arası). description kısa, öğrencinin belirttiği konuya uygun olsun.`
       : `Sen sıcak, samimi ve insan gibi konuşan bir YKS hazırlık koçusun.${systemContext}
 Öğrenciyle arkadaş gibi sohbet et. Robot gibi, kuru ve yapay cevaplar verme. Bazen kısa sorular sor, empati göster, motive et. Türkçe yaz. Cümleleri doğal tut, "Şunu yapmalısın" gibi emir kipli ifadelerden kaçın. "Bence", "Senin için", "Şöyle düşünüyorum" gibi kişisel ifadeler kullan. Gerektiğinde hafif mizah kat. Maksimum 4-5 cümle ama samimi olsun.`;
 
@@ -95,7 +108,7 @@ Haftanın 7 günü: Pazartesi, Salı, Çarşamba, Perşembe, Cuma, Cumartesi, Pa
       },
       {
         role: "model",
-        parts: [{ text: wantsPlan ? "Tamam, programı JSON formatında hazırlıyorum." : "Merhaba! Nasılsın? Deneme sonuçların ve hedeflerinle ilgili konuşalım, neye ihtiyacın var?" }],
+        parts: [{ text: isPlanRequest ? "Tamam, programı JSON formatında hazırlıyorum." : "Merhaba! Nasılsın? Deneme sonuçların ve hedeflerinle ilgili konuşalım, neye ihtiyacın var?" }],
       },
     ];
 
@@ -111,15 +124,15 @@ Haftanın 7 günü: Pazartesi, Salı, Çarşamba, Perşembe, Cuma, Cumartesi, Pa
     });
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents,
           generationConfig: {
-            maxOutputTokens: wantsPlan ? 2000 : 500,
-            temperature: wantsPlan ? 0.3 : 0.8,
+            maxOutputTokens: isPlanRequest ? 2000 : 500,
+            temperature: isPlanRequest ? 0.3 : 0.8,
           },
         }),
       }
@@ -135,7 +148,7 @@ Haftanın 7 günü: Pazartesi, Salı, Çarşamba, Perşembe, Cuma, Cumartesi, Pa
     let text =
       geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
 
-    if (wantsPlan && text) {
+    if (isPlanRequest && text) {
       let planData: { day: string; tasks: { subject: string; duration_minutes: number; description: string }[] }[] | null = null;
 
       function extractPlanArray(raw: string): unknown[] | null {
@@ -185,13 +198,20 @@ Haftanın 7 günü: Pazartesi, Salı, Çarşamba, Perşembe, Cuma, Cumartesi, Pa
 
       if (planData && planData.length > 0) {
         const summary = planData
-          .map((d) => `**${d.day}:** ${d.tasks.map((t) => `${t.subject} (${t.duration_minutes} dk) - ${t.description}`).join(" | ")}`)
-          .join("\n");
+          .map((d) => {
+            const tasksStr = d.tasks.map((t) => `${t.subject} (${t.duration_minutes} dk) - ${t.description}`).join("\n  • ");
+            return `${d.day}:\n  • ${tasksStr || "Dinlenme"}`;
+          })
+          .join("\n\n");
         return NextResponse.json({
           reply: summary,
           plan: planData,
         });
       }
+
+      return NextResponse.json({
+        reply: "Program formatı tanınamadı. Lütfen tekrar deneyin veya 'Haftalık program hazırla' diye yeniden yazın. Daha kısa ve net bir talep de işe yarayabilir.",
+      });
     }
 
     return NextResponse.json({ reply: text });

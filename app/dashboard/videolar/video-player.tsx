@@ -496,6 +496,7 @@ export function VideoPlayer({
   const router = useRouter();
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [embedBlocked, setEmbedBlocked] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [channelsOpen, setChannelsOpen] = useState(false);
@@ -523,20 +524,29 @@ export function VideoPlayer({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [channelsOpen, playlistOpen]);
 
-  const filteredVideos = useMemo(() => {
+  const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
+    if (!q) return { channels: [] as Channel[], videos: [] as Video[] };
     const words = q.split(/\s+/).filter(Boolean);
     const matchingChannels = channels.filter((c) =>
       words.every((w) => (c.channel_name ?? "").toLowerCase().includes(w))
     );
     const matchingChannelIds = new Set(matchingChannels.map((c) => c.channel_id));
-    return videos.filter(
-      (v) => v.channel_id && matchingChannelIds.has(v.channel_id)
+    const matchingVideos = videos.filter(
+      (v) =>
+        words.every((w) => (v.title ?? "").toLowerCase().includes(w)) ||
+        (v.channel_id && matchingChannelIds.has(v.channel_id))
     );
+    // Don't double-list videos that belong to matching channels
+    const channelOnlyVideos = matchingVideos.filter(
+      (v) => !v.channel_id || !matchingChannelIds.has(v.channel_id)
+    );
+    return { channels: matchingChannels, videos: channelOnlyVideos };
   }, [videos, channels, searchQuery]);
 
   const showSearchResults = searchFocused && searchQuery.trim().length > 0;
+  const filteredVideos = searchResults.videos;
+  const filteredChannels = searchResults.channels;
 
   // Optimistic UI: anlık görünüm için lokal state
   const [optimisticRemoved, setOptimisticRemoved] = useState<Set<string>>(new Set());
@@ -551,6 +561,11 @@ export function VideoPlayer({
     },
     [savedIds, optimisticRemoved, optimisticAdded]
   );
+
+  function selectVideo(v: Video) {
+    setEmbedBlocked(false);
+    setSelectedVideo(v);
+  }
 
   async function handleToggleSave(v: Video) {
     const wasSaved = savedIds.includes(v.id);
@@ -586,12 +601,28 @@ export function VideoPlayer({
     onMutate?.() ?? router.refresh();
   }
 
+  // Detect YouTube embed blocked via postMessage (error codes 101, 150)
+  useEffect(() => {
+    function handleMessage(e: MessageEvent) {
+      try {
+        const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+        if (data?.event === "onError" && (data?.info === 101 || data?.info === 150)) {
+          setEmbedBlocked(true);
+        }
+      } catch { /* ignore */ }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
   function handlePlayFromModal(v: Video) {
+    setEmbedBlocked(false);
     setSelectedVideo(v);
     setChannelModalTarget(null);
   }
 
   function handlePlayFromPlaylist(videoId: string, title: string) {
+    setEmbedBlocked(false);
     setSelectedVideo({
       id: `yt-${videoId}`,
       video_id: videoId,
@@ -624,59 +655,106 @@ export function VideoPlayer({
           </div>
           {showSearchResults && (
             <div className="absolute top-full left-0 right-0 z-20 mt-1 max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-              {filteredVideos.length === 0 ? (
+              {filteredChannels.length === 0 && filteredVideos.length === 0 ? (
                 <p className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
                   Sonuç bulunamadı
                 </p>
               ) : (
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {filteredVideos.map((v) => (
-                    <div
-                      key={v.id}
-                      className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedVideo(v);
-                          setSearchQuery("");
-                          setSearchFocused(false);
-                        }}
-                        className="flex min-w-0 flex-1 items-start gap-3 text-left"
-                      >
-                        <div className="flex h-10 w-16 shrink-0 items-center justify-center rounded bg-slate-200 dark:bg-slate-700">
-                          <Play className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
-                            {v.title}
-                          </p>
-                          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                            {getSubjectName(v.subjects) || "Ders"}
-                            {v.topic && ` • ${v.topic}`}
-                            {v.duration_seconds && (
-                              <span> • {formatDuration(v.duration_seconds)}</span>
+                  {filteredChannels.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        Kanallar
+                      </div>
+                      {filteredChannels.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setChannelModalTarget(c);
+                            setSearchQuery("");
+                            setSearchFocused(false);
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        >
+                          <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={`/api/channel-thumbnail/${encodeURIComponent(c.channel_id)}`}
+                              alt={c.channel_name}
+                              className="h-full w-full object-cover"
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                              {c.channel_name}
+                            </p>
+                            {getSubjectName(c.subjects) && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{getSubjectName(c.subjects)}</p>
                             )}
-                          </p>
+                          </div>
+                          <Youtube className="h-4 w-4 shrink-0 text-red-500" />
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {filteredVideos.length > 0 && (
+                    <>
+                      {filteredChannels.length > 0 && (
+                        <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          Videolar
                         </div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleSave(v);
-                        }}
-                        className="shrink-0 rounded p-1.5"
-                        title={isSaved(v.id) ? "Kayıttan çıkar" : "Kaydet"}
-                      >
-                        {isSaved(v.id) ? (
-                          <BookmarkCheck className="h-5 w-5 text-amber-500" />
-                        ) : (
-                          <Bookmark className="h-5 w-5 text-slate-400 hover:text-amber-500" />
-                        )}
-                      </button>
-                    </div>
-                  ))}
+                      )}
+                      {filteredVideos.map((v) => (
+                        <div
+                          key={v.id}
+                          className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedVideo(v);
+                              setSearchQuery("");
+                              setSearchFocused(false);
+                            }}
+                            className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                          >
+                            <div className="flex h-10 w-16 shrink-0 items-center justify-center rounded bg-slate-200 dark:bg-slate-700">
+                              <Play className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                                {v.title}
+                              </p>
+                              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                {getSubjectName(v.subjects) || "Ders"}
+                                {v.topic && ` • ${v.topic}`}
+                                {v.duration_seconds && (
+                                  <span> • {formatDuration(v.duration_seconds)}</span>
+                                )}
+                              </p>
+                            </div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleSave(v);
+                            }}
+                            className="shrink-0 rounded p-1.5"
+                            title={isSaved(v.id) ? "Kayıttan çıkar" : "Kaydet"}
+                          >
+                            {isSaved(v.id) ? (
+                              <BookmarkCheck className="h-5 w-5 text-amber-500" />
+                            ) : (
+                              <Bookmark className="h-5 w-5 text-slate-400 hover:text-amber-500" />
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -801,7 +879,7 @@ export function VideoPlayer({
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedVideo(v);
+                          selectVideo(v);
                           setPlaylistOpen(false);
                         }}
                         className="flex min-w-0 flex-1 items-start gap-3 text-left"
@@ -865,14 +943,37 @@ export function VideoPlayer({
         <div className="sticky top-24 overflow-hidden rounded-xl border border-slate-200 bg-slate-950 dark:border-slate-800">
           {selectedVideo ? (
             <>
-              <div className="aspect-video w-full overflow-hidden rounded-t-xl">
-                <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${selectedVideo.video_id}?rel=0&modestbranding=1&autoplay=1`}
-                  title={selectedVideo.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="h-full w-full"
-                />
+              <div className="relative aspect-video w-full overflow-hidden rounded-t-xl">
+                {embedBlocked ? (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-slate-900 p-6 text-center">
+                    <Youtube className="h-12 w-12 text-red-500" />
+                    <div>
+                      <p className="font-semibold text-white">Bu video embed'e kapalı</p>
+                      <p className="mt-1 text-sm text-slate-400">
+                        Kanal sahibi bu videoyu dış sitelerde oynatmayı kapatmış.
+                      </p>
+                    </div>
+                    <a
+                      href={`https://www.youtube.com/watch?v=${selectedVideo.video_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-500"
+                    >
+                      <Youtube className="h-4 w-4" />
+                      YouTube&apos;da İzle
+                    </a>
+                  </div>
+                ) : (
+                  <iframe
+                    key={selectedVideo.video_id}
+                    src={`https://www.youtube-nocookie.com/embed/${selectedVideo.video_id}?rel=0&modestbranding=1&autoplay=1&enablejsapi=1`}
+                    title={selectedVideo.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="h-full w-full"
+                    onLoad={() => setEmbedBlocked(false)}
+                  />
+                )}
               </div>
               <div className="flex items-start justify-between gap-4 border-t border-slate-700 bg-slate-900 px-4 py-3">
                 <div className="min-w-0 flex-1">

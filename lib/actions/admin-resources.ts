@@ -113,12 +113,21 @@ export async function deletePublisher(id: string) {
 export async function getAdminResources() {
   if (!(await getIsAdmin())) return [];
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("resources")
-    .select("id, name, resource_type, icon_url, publisher_id, publishers(id, name)")
+    .select("id, name, resource_type, icon_url, publisher_id, subject_id, publishers(id, name), subjects(id, name)")
     .eq("program_id", PROGRAM_ID)
     .order("resource_type")
     .order("name");
+  if (error) {
+    const { data: fallbackData } = await supabase
+      .from("resources")
+      .select("id, name, resource_type, icon_url, publisher_id, publishers(id, name)")
+      .eq("program_id", PROGRAM_ID)
+      .order("resource_type")
+      .order("name");
+    return (fallbackData ?? []).map((r) => ({ ...r, subject_id: null, subjects: null }));
+  }
   return data ?? [];
 }
 
@@ -127,16 +136,19 @@ export async function addResource(formData: {
   resource_type: ResourceType;
   publisher_id: string;
   icon_url?: string;
+  subject_id?: string | null;
 }) {
   if (!(await getIsAdmin())) return { error: "Yetkiniz yok" };
   const supabase = createAdminClient();
-  const { error } = await supabase.from("resources").insert({
+  const payload: Record<string, unknown> = {
     name: formData.name.trim(),
     resource_type: formData.resource_type,
     program_id: PROGRAM_ID,
     publisher_id: formData.publisher_id || null,
     icon_url: formData.icon_url?.trim() || null,
-  });
+  };
+  if (formData.subject_id !== undefined) payload.subject_id = formData.subject_id || null;
+  const { error } = await supabase.from("resources").insert(payload);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/admin/kaynaklar");
   return { success: true };
@@ -144,7 +156,7 @@ export async function addResource(formData: {
 
 export async function updateResource(
   id: string,
-  updates: Partial<{ name: string; resource_type: ResourceType; icon_url: string | null; publisher_id: string | null }>
+  updates: Partial<{ name: string; resource_type: ResourceType; icon_url: string | null; publisher_id: string | null; subject_id: string | null }>
 ) {
   if (!(await getIsAdmin())) return { error: "Yetkiniz yok" };
   const supabase = createAdminClient();
@@ -153,6 +165,7 @@ export async function updateResource(
   if (updates.resource_type !== undefined) payload.resource_type = updates.resource_type;
   if (updates.icon_url !== undefined) payload.icon_url = updates.icon_url?.trim() || null;
   if (updates.publisher_id !== undefined) payload.publisher_id = updates.publisher_id || null;
+  if (updates.subject_id !== undefined) payload.subject_id = updates.subject_id || null;
   const { error } = await supabase.from("resources").update(payload).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/admin/kaynaklar");
