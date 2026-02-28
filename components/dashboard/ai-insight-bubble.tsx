@@ -118,7 +118,7 @@ function loadStoredMessages(): ChatMessage[] {
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
       (m): m is ChatMessage =>
-        m && typeof m === "object" && "role" in m && "content" in m
+        m !== null && m !== undefined && typeof m === "object" && "role" in (m as object) && "content" in (m as object)
     ) as ChatMessage[];
   } catch {
     return [];
