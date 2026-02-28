@@ -183,11 +183,11 @@ Kurallar: Haftanın 7 günü (Pazartesi-Pazar). Her günde 2-4 görev. subject: 
       const arr = extractPlanArray(text);
       if (arr && arr.length > 0) {
         planData = arr
-          .filter((d): d is { day: string; tasks?: unknown[] } => d && typeof d === "object" && "day" in d)
+          .filter((d): d is { day: string; tasks?: unknown[] } => d !== null && typeof d === "object" && "day" in (d as Record<string, unknown>))
           .map((d) => ({
             day: String(d.day),
             tasks: (Array.isArray(d.tasks) ? d.tasks : [])
-              .filter((t): t is Record<string, unknown> => t && typeof t === "object")
+              .filter((t): t is Record<string, unknown> => t !== null && t !== undefined && typeof t === "object")
               .map((t) => ({
                 subject: String(t.subject ?? "Ders"),
                 duration_minutes: Number(t.duration_minutes ?? t.duration ?? 60) || 60,
