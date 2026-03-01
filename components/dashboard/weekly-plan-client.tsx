@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { getOrCreateWeeklyPlan, getWeeklyPlanByDate, getWeeklyPlanHistory, restoreWeeklyPlan } from "@/lib/actions/plans";
 import { revalidateKey } from "@/lib/swr/hooks";
 import { DraggableWeeklyPlan } from "./draggable-weekly-plan";
+import { ProactiveCoachToast } from "./proactive-coach-toast";
 import { ChevronLeft, ChevronRight, History, RotateCcw, Calendar } from "lucide-react";
 
 const DAY_NAMES = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
@@ -124,6 +125,9 @@ export function WeeklyPlanClient() {
 
   return (
     <div className="space-y-4">
+      {isCurrentWeek && (
+        <ProactiveCoachToast tasks={tasks} weekStart={selectedWeek} />
+      )}
       {/* Hafta Navigasyonu */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">

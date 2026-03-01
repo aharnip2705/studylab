@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, PlusCircle, BarChart2, PlayCircle, Settings, PanelLeftClose, PanelLeft, Timer, X } from "lucide-react";
+import { CalendarDays, PlusCircle, BarChart2, BookOpen, PlayCircle, Settings, PanelLeftClose, PanelLeft, Timer, X, ClipboardList } from "lucide-react";
 import { useSidebar } from "./sidebar-provider";
 import { StudyLabLogo } from "@/components/study-lab-logo";
 
 const navItems = [
   { href: "/dashboard", label: "Haftalık Plan", icon: CalendarDays },
   { href: "/dashboard/gorev-ekle", label: "Görev Ekle", icon: PlusCircle },
+  { href: "/dashboard/konu-takip", label: "Konu Takip", icon: ClipboardList },
   { href: "/dashboard/istatistikler", label: "İstatistikler", icon: BarChart2 },
   { href: "/dashboard/videolar", label: "Video Dersler", icon: PlayCircle },
   { href: "/dashboard/sayac", label: "Pomodoro / Sayaç", icon: Timer },

@@ -361,6 +361,9 @@ export async function updateTaskStatus(
   status: "tamamlanmadi" | "kismen_tamamlandi" | "tamamlandi",
   extra?: { solved_questions_count?: number; excuse?: string | null }
 ) {
+  if (status === "tamamlanmadi" && (!extra?.excuse || !String(extra.excuse).trim())) {
+    return { error: "Tamamlanmadı olarak işaretlemek için mazeret girmeniz gerekiyor." };
+  }
   const supabase = await createClient();
   const payload: Record<string, unknown> = {
     status,

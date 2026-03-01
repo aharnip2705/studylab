@@ -9,6 +9,8 @@ export function AdminSyncBilgiSarmal() {
   const [result, setResult] = useState<{
     nameMatchesUpdated: number;
     iconsUpdated: number;
+    subjectsUpdated: number;
+    typesUpdated: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,9 +30,9 @@ export function AdminSyncBilgiSarmal() {
         Yayınevi eşleştirme ve görseller
       </h3>
       <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
-        Kaynak isimlerinde geçen yayınevi adlarını otomatik eşleştirir (örn. isimde &quot;Karekök&quot;
-        varsa yayınevi Karekök yapılır). Yeni gelen kaynaklar dahil tüm kaynakların görselini
-        yayınevlerinin logosu ile günceller.
+        Kaynak isimlerindeki yayınevi adlarını eşleştirir, ders kategorisini (paragraf→Türkçe vb.)
+        tahmin eder ve kaynak tipini günceller. Tüm kaynakların görselini yayınevlerinin logosu ile
+        günceller.
       </p>
       <button
         type="button"
@@ -51,11 +53,10 @@ export function AdminSyncBilgiSarmal() {
         </p>
       )}
       {result && (
-        <p className="mt-4 rounded-lg bg-green-100 p-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
-          <strong>{result.nameMatchesUpdated}</strong> kaynağın yayınevi isme göre eşleştirildi.
-          <strong className="ml-1">{result.iconsUpdated}</strong> kaynağın görseli yayınevi logosu ile
-          güncellendi.
-        </p>
+        <div className="mt-4 space-y-1 rounded-lg bg-green-100 p-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
+          <p><strong>{result.nameMatchesUpdated}</strong> yayınevi eşleştirildi · <strong>{result.iconsUpdated}</strong> görsel güncellendi</p>
+          <p><strong>{result.subjectsUpdated}</strong> ders kategorisi · <strong>{result.typesUpdated}</strong> kaynak tipi güncellendi</p>
+        </div>
       )}
     </div>
   );

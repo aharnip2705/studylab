@@ -191,49 +191,128 @@ export async function deleteResources(ids: string[]) {
   return { success: true };
 }
 
-/** Kaynak isimlerindeki yayınevi adlarını eşleştirir; tüm kaynakların icon_url'ini yayınevlerinin logosuyla günceller */
+/** Ders adından subject_id bulma için anahtar kelime eşlemesi */
+const SUBJECT_KEYWORDS: Record<string, string[]> = {
+  matematik: ["matematik", "math", "sayısal", "türev", "integral", "geometri", "üçgen", "polinomlar", "fonksiyon"],
+  türkçe: ["türkçe", "türk dili", "fiilimsi", "paragraf", "sözcük", "anlam"],
+  fizik: ["fizik", "kuvvet", "hareket", "elektrik", "optik", "dalgalar"],
+  kimya: ["kimya", "asit", "baz", "tuz", "organik", "mol", "element"],
+  biyoloji: ["biyoloji", "hücre", "genetik", "ekosistem", "canlı"],
+  tarih: ["tarih", "osmanlı", "cumhuriyet", "inkılap"],
+  coğrafya: ["coğrafya", "iklim", "nüfus", "harita"],
+  felsefe: ["felsefe", "mantık", "psikoloji", "sosyoloji"],
+  edebiyat: ["edebiyat", "şiir", "roman", "hikaye", "divan"],
+  "din kültürü": ["din kültürü", "din kültürü"],
+};
+
+function guessSubjectIdFromName(name: string, subjects: { id: string; name: string }[]): string | null {
+  const norm = name.toLowerCase();
+  for (const s of subjects) {
+    if (norm.includes(s.name.toLowerCase())) return s.id;
+  }
+  for (const [subjKey, keywords] of Object.entries(SUBJECT_KEYWORDS)) {
+    if (keywords.some((kw) => norm.includes(kw))) {
+      const match = subjects.find((s) => s.name.toLowerCase().includes(subjKey));
+      if (match) return match.id;
+    }
+  }
+  return null;
+}
+
+function guessResourceTypeFromName(name: string): ResourceType {
+  const norm = name.toLowerCase();
+  if (norm.includes("deneme") || norm.includes("full") || norm.includes("kamp")) return "deneme_sinavi";
+  if (norm.includes("video") || norm.includes("ders") || norm.includes("anlatım")) return "video_ders_kitabi";
+  if (
+    norm.includes("soru") ||
+    norm.includes("paragraf") ||
+    norm.includes("test") ||
+    norm.includes("konu") ||
+    norm.includes("tyt") ||
+    norm.includes("ayt")
+  )
+    return "soru_bankasi";
+  return "diger";
+}
+
+/** Kaynak isimlerindeki yayınevi adlarını eşleştirir; tüm kaynakların icon_url, subject_id, resource_type alanlarını günceller */
 export async function syncResourcePublishersAndIcons(): Promise<
   | { error: string }
-  | { success: true; nameMatchesUpdated: number; iconsUpdated: number }
+  | {
+      success: true;
+      nameMatchesUpdated: number;
+      iconsUpdated: number;
+      subjectsUpdated: number;
+      typesUpdated: number;
+    }
 > {
   if (!(await getIsAdmin())) return { error: "Yetkiniz yok" };
 
   const supabase = createAdminClient();
 
-  // 1. Tüm yayınevlerini al (uzun isim önce - daha iyi eşleşme için)
+  // 1. Yayınevleri ve dersler
   const { data: pubs } = await supabase
     .from("publishers")
     .select("id, name, logo_url")
     .eq("program_id", PROGRAM_ID)
     .order("name");
 
+  const { data: subjects } = await supabase
+    .from("subjects")
+    .select("id, name")
+    .eq("program_id", PROGRAM_ID);
+
   const publishers = (pubs ?? []).filter((p) => (p.name ?? "").trim());
+  const subjectList = subjects ?? [];
   const sortedByLen = [...publishers].sort((a, b) => (b.name?.length ?? 0) - (a.name?.length ?? 0));
 
-  // 2. Tüm kaynakları al
+  // 2. Tüm kaynakları al (publisher_id, subject_id, resource_type dahil)
   const { data: resources } = await supabase
     .from("resources")
-    .select("id, name, publisher_id")
+    .select("id, name, publisher_id, subject_id, resource_type")
     .eq("program_id", PROGRAM_ID);
 
   let nameMatchesUpdated = 0;
+  let subjectsUpdated = 0;
+  let typesUpdated = 0;
+
   for (const r of resources ?? []) {
     const name = (r.name ?? "").trim().toLowerCase();
     if (!name) continue;
+
+    const updates: Record<string, unknown> = {};
+
+    // Yayınevi eşleştirme
     for (const p of sortedByLen) {
       const pubName = (p.name ?? "").trim().toLowerCase();
       if (!pubName || !name.includes(pubName)) continue;
-      if (r.publisher_id === p.id) break;
-      const { error } = await supabase
-        .from("resources")
-        .update({ publisher_id: p.id })
-        .eq("id", r.id);
-      if (!error) nameMatchesUpdated++;
+      if (r.publisher_id !== p.id) {
+        updates.publisher_id = p.id;
+        nameMatchesUpdated++;
+      }
       break;
+    }
+
+    // Ders kategorisi (subject_id) eşleştirme
+    const guessedSubjectId = guessSubjectIdFromName(name, subjectList);
+    if (guessedSubjectId && r.subject_id !== guessedSubjectId) {
+      updates.subject_id = guessedSubjectId;
+      subjectsUpdated++;
+    }
+
+    // Kaynak tipi eşleştirme (paragraf/soru kitapları "diger" yerine soru_bankasi)
+    const guessedType = guessResourceTypeFromName(name);
+    if (guessedType !== "diger" && r.resource_type !== guessedType) {
+      updates.resource_type = guessedType;
+      typesUpdated++;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await supabase.from("resources").update(updates).eq("id", r.id);
     }
   }
 
-  // 3. Yayınevi logosu olan kaynakların icon_url'ini güncelle (publisher_id + logo_url olan yayınevleri)
+  // 3. Yayınevi logosu olan kaynakların icon_url'ini güncelle
   const pubLogoMap = new Map<string, string>();
   for (const p of publishers) {
     if (p.logo_url?.trim()) pubLogoMap.set(p.id, p.logo_url.trim());
@@ -260,7 +339,13 @@ export async function syncResourcePublishersAndIcons(): Promise<
   }
 
   revalidatePath("/dashboard/admin/kaynaklar");
-  return { success: true, nameMatchesUpdated, iconsUpdated };
+  return {
+    success: true,
+    nameMatchesUpdated,
+    iconsUpdated,
+    subjectsUpdated,
+    typesUpdated,
+  };
 }
 
 /** kitaplar.json dosyasındaki scraped verileri panele aktarır */

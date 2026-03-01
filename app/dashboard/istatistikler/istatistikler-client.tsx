@@ -52,7 +52,9 @@ export function IstatistiklerClient() {
     );
   }
 
-  const computed = filteredExams.map(computeExam);
+  const computed = filteredExams.map((e) =>
+    computeExam(e, { tytTargetNet, aytTargetNet })
+  );
 
   return (
     <div className="space-y-6 px-1">

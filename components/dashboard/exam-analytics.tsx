@@ -37,14 +37,20 @@ interface ComputedExam extends PracticeExam {
   netTarget: number | null;
 }
 
-function computeExam(exam: PracticeExam): ComputedExam {
+function computeExam(
+  exam: PracticeExam,
+  targets?: { tytTargetNet?: number | null; aytTargetNet?: number | null }
+): ComputedExam {
   const totalQuestions = exam.exam_type === "tyt" ? 120 : 80;
   const net = calculateNet(exam.total_correct, exam.total_wrong);
   const timePerQuestion = calculateTimePerQuestion(
     exam.total_time_minutes,
     totalQuestions
   );
-  const netTarget = exam.net_target ?? null;
+  const netTarget =
+    exam.net_target ??
+    (exam.exam_type === "tyt" ? targets?.tytTargetNet : targets?.aytTargetNet) ??
+    null;
   const successRate =
     netTarget != null && netTarget > 0
       ? (net / netTarget) * 100
@@ -268,15 +274,17 @@ function SubjectBreakdown({
       <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
         Ders Bazlı Performans (Denemelere Göre Ortalama)
       </p>
+      <p className="mb-3 text-[11px] text-slate-500">
+        Ort. net = denemelerdeki net ortalaması · Ort. boş = cevapsız bırakılan soru ortalaması
+      </p>
       <div className="space-y-3">
         {entries.map(([subject, { sumNet, sumCorrect, sumWrong, sumEmpty, count }]) => {
           const avgNet = sumNet / count;
-          const avgCorrect = sumCorrect / count;
-          const avgWrong = sumWrong / count;
           const avgEmpty = sumEmpty / count;
           const maxQ = subjectQuestions[subject];
-          const total = maxQ ?? avgCorrect + avgWrong + avgEmpty;
-          const pct = total > 0 ? (avgCorrect / total) * 100 : 0;
+          const avgCorrect = sumCorrect / count;
+          const pct =
+            maxQ != null && maxQ > 0 ? (avgCorrect / maxQ) * 100 : 0;
           return (
             <div key={subject} className="space-y-1">
               <div className="flex items-center justify-between">
@@ -286,15 +294,16 @@ function SubjectBreakdown({
                     <span className="ml-1 font-normal text-slate-600">({maxQ} soru)</span>
                   )}
                 </span>
-                <span className="text-xs text-slate-500">
-                  {avgNet.toFixed(1)} net (ort.) &middot;{" "}
-                  {avgCorrect.toFixed(0)}D {avgWrong.toFixed(0)}Y {avgEmpty.toFixed(0)}B
+                <span className="text-xs text-slate-400">
+                  Ort. <strong className="text-white">{avgNet.toFixed(1)}</strong> net · Ort.{" "}
+                  <strong className="text-white">{avgEmpty.toFixed(1)}</strong> boş
+                  <span className="ml-1 text-slate-500">({count} deneme)</span>
                 </span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-500"
-                  style={{ width: `${pct}%` }}
+                  style={{ width: `${Math.min(pct, 100)}%` }}
                 />
               </div>
             </div>
@@ -386,7 +395,7 @@ function formatTargetNet(n: number): string {
 }
 
 export function ExamAnalytics({ exams, studyField, tytTargetNet, aytTargetNet }: ExamAnalyticsProps) {
-  const computed = exams.map(computeExam);
+  const computed = exams.map((e) => computeExam(e, { tytTargetNet, aytTargetNet }));
   const latest = computed[0];
   const effectiveNetTarget =
     latest &&
