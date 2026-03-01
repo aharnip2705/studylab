@@ -15,7 +15,7 @@ const DAY_MAP: Record<string, number> = {
   persembe: 4,
   cuma: 5,
   cumartesi: 6,
-  pazar: 0,
+  pazar: 7,
 };
 
 function getWeekStart(date: Date): string {
@@ -31,7 +31,7 @@ function getWeekStart(date: Date): string {
 
 function getDateForDayOfWeek(weekStart: string, dayOfWeek: number): string {
   const ws = new Date(weekStart + "T12:00:00");
-  const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const offset = dayOfWeek - 1;
   ws.setDate(ws.getDate() + offset);
   const y = ws.getFullYear();
   const m = String(ws.getMonth() + 1).padStart(2, "0");

@@ -33,6 +33,7 @@ interface DraggableWeeklyPlanProps {
   days: { date: string; dayOfWeek: number; dayName: string }[];
   initialTasksByDateRecord: Record<string, Task[]>;
   onMutate?: () => void;
+  readOnly?: boolean;
 }
 
 function getTodayDateStr(): string {
@@ -43,7 +44,7 @@ function getTodayDateStr(): string {
   return `${y}-${m}-${day}`;
 }
 
-export function DraggableWeeklyPlan({ planId, days, initialTasksByDateRecord, onMutate }: DraggableWeeklyPlanProps) {
+export function DraggableWeeklyPlan({ planId, days, initialTasksByDateRecord, onMutate, readOnly }: DraggableWeeklyPlanProps) {
   const router = useRouter();
   const todayStr = getTodayDateStr();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -141,9 +142,9 @@ export function DraggableWeeklyPlan({ planId, days, initialTasksByDateRecord, on
             <div
               key={day.date}
               ref={isToday ? todayColumnRef : undefined}
-              onDragOver={(e) => handleDragOver(e, day.date)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, day.date)}
+              onDragOver={readOnly ? undefined : (e) => handleDragOver(e, day.date)}
+              onDragLeave={readOnly ? undefined : handleDragLeave}
+              onDrop={readOnly ? undefined : (e) => handleDrop(e, day.date)}
               style={{ animationDelay: `${idx * 40}ms` }}
               className={`animate-item-in flex min-w-[280px] snap-start flex-col rounded-xl border-2 p-3 transition-colors ${
                 isDragOver
@@ -164,15 +165,15 @@ export function DraggableWeeklyPlan({ planId, days, initialTasksByDateRecord, on
               </div>
               <div className="min-h-[80px] flex-1 space-y-2 overflow-y-auto weekly-plan-scroll">
                 {dayTasks.length === 0 ? (
-                  <p className="py-4 text-center text-xs text-slate-400">Görev yok — buraya sürükleyin</p>
+                  <p className="py-4 text-center text-xs text-slate-400">{readOnly ? "Görev yok" : "Görev yok — buraya sürükleyin"}</p>
                 ) : (
                   dayTasks.map((task) => (
                     <div
                       key={task.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, task)}
-                      onDragEnd={handleDragEnd}
-                      className={`cursor-grab active:cursor-grabbing ${draggedTask?.id === task.id ? "opacity-50" : ""}`}
+                      draggable={!readOnly}
+                      onDragStart={readOnly ? undefined : (e) => handleDragStart(e, task)}
+                      onDragEnd={readOnly ? undefined : handleDragEnd}
+                      className={`${readOnly ? "cursor-default" : "cursor-grab active:cursor-grabbing"} ${draggedTask?.id === task.id ? "opacity-50" : ""}`}
                     >
                       <TaskCard
                         id={task.id}

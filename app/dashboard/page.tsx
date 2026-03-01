@@ -8,8 +8,8 @@ export default function DashboardPage() {
           Haftalık Plan
         </h1>
         <p className="mt-1 text-slate-600 dark:text-slate-400">
-          Görevlere tıklayarak durumunu güncelleyebilirsiniz (Tamamlandı / Kısmen
-          / Tamamlanmadı)
+          Görevlere tıklayarak durumunu güncelleyebilirsiniz. Ok butonlarıyla
+          geçmiş haftalara göz atabilirsiniz.
         </p>
       </div>
 

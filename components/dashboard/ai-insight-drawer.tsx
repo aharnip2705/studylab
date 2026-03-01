@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Brain, Sparkles, Send, Loader2, BookmarkCheck } from "lucide-react";
+import { X, Brain, Sparkles, Send, Loader2, Eye } from "lucide-react";
 import type { PracticeExam } from "@/lib/actions/practice-exams";
-import { applyAiPlan } from "@/lib/actions/ai-plan";
 import { revalidateKey } from "@/lib/swr/hooks";
+import { PlanPreviewModal } from "./plan-preview-modal";
 
 interface AiPlanTask {
   subject: string;
@@ -62,52 +62,32 @@ function extractPlan(content: string): AiPlanDay[] | null {
   }
 }
 
-function ApplyPlanButton({ plan }: { plan: AiPlanDay[] }) {
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [confirming, setConfirming] = useState(false);
+function ApplyPlanButton({ plan, onRequestChange }: { plan: AiPlanDay[]; onRequestChange?: (feedback: string) => void }) {
+  const [showPreview, setShowPreview] = useState(false);
+  const [applied, setApplied] = useState(false);
 
-  async function handleApply() {
-    setStatus("loading");
-    setConfirming(false);
-    try {
-      const result = await applyAiPlan(plan);
-      if ("error" in result) setStatus("error");
-      else { setStatus("done"); revalidateKey("weeklyPlan"); }
-    } catch { setStatus("error"); }
-  }
-
-  if (status === "done") {
+  if (applied) {
     return <p className="mt-2 text-xs font-medium text-emerald-400">✓ Haftalık plana eklendi!</p>;
   }
+
   return (
-    <div className="mt-2 flex flex-col gap-2">
-      {confirming ? (
-        <>
-          <p className="text-xs text-amber-400">⚠ Mevcut görevler silinecektir. Devam?</p>
-          <div className="flex gap-2">
-            <button type="button" onClick={handleApply} disabled={status === "loading"}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50">
-              {status === "loading" ? "Ekleniyor..." : "Evet, Uygula"}
-            </button>
-            <button type="button" onClick={() => setConfirming(false)}
-              className="rounded-lg bg-white/10 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-300">
-              İptal
-            </button>
-          </div>
-        </>
-      ) : (
-        <button type="button" onClick={() => setConfirming(true)}
+    <>
+      <div className="mt-2">
+        <button type="button" onClick={() => setShowPreview(true)}
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/30">
-          <BookmarkCheck className="h-3.5 w-3.5" />
-          Haftalık Plana Ekle
+          <Eye className="h-3.5 w-3.5" />
+          Programı Önizle
         </button>
+      </div>
+      {showPreview && (
+        <PlanPreviewModal
+          plan={plan}
+          onClose={() => setShowPreview(false)}
+          onApplied={() => { setShowPreview(false); setApplied(true); }}
+          onRequestChange={(fb) => { setShowPreview(false); onRequestChange?.(fb); }}
+        />
       )}
-      {status === "error" && (
-        <button type="button" onClick={handleApply} className="text-xs text-rose-400 hover:underline">
-          Hata oluştu – tekrar dene
-        </button>
-      )}
-    </div>
+    </>
   );
 }
 
@@ -402,7 +382,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                     {messages.map((msg) => {
                       const plan = msg.role === "assistant" ? extractPlan(msg.content) : null;
                       const displayContent = plan
-                        ? "✅ Haftalık programın hazır! Aşağıdan plana ekleyebilirsin."
+                        ? "✅ Haftalık programın hazır! Önizle butonuna tıklayarak programı inceleyebilir, onaylayabilir veya değişiklik isteyebilirsin."
                         : msg.content;
 
                       return (
@@ -423,7 +403,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                             }`}
                           >
                             {displayContent}
-                            {plan && plan.length > 0 && <ApplyPlanButton plan={plan} />}
+                            {plan && plan.length > 0 && <ApplyPlanButton plan={plan} onRequestChange={(fb) => fillInput(fb)} />}
                           </div>
                         </div>
                       );

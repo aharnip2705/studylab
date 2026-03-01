@@ -74,6 +74,160 @@ export async function getOrCreateWeeklyPlan() {
   return { plan, tasks: tasks ?? [] };
 }
 
+/** Belirli bir haftanın planını getir (geçmiş veya gelecek) */
+export async function getWeeklyPlanByDate(weekStartDate: string) {
+  noStore();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { plan: null, tasks: [] };
+
+  const { data: plan } = await supabase
+    .from("weekly_plans")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("week_start_date", weekStartDate)
+    .single();
+
+  if (!plan) return { plan: null, tasks: [] };
+
+  const { data: tasks } = await supabase
+    .from("plan_tasks")
+    .select(`
+      *,
+      subjects(name, icon_url),
+      resources(name),
+      user_resources(name)
+    `)
+    .eq("weekly_plan_id", plan.id)
+    .order("task_date")
+    .order("created_at");
+
+  return { plan, tasks: tasks ?? [] };
+}
+
+/** Kullanıcının tüm geçmiş hafta planlarını listele (tarih + görev sayısı) */
+export async function getWeeklyPlanHistory() {
+  noStore();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: plans } = await supabase
+    .from("weekly_plans")
+    .select("id, week_start_date")
+    .eq("user_id", user.id)
+    .order("week_start_date", { ascending: false });
+
+  if (!plans || plans.length === 0) return [];
+
+  const results: { week_start_date: string; task_count: number; completed: number; partial: number; failed: number }[] = [];
+
+  for (const p of plans) {
+    const { count: totalCount } = await supabase
+      .from("plan_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("weekly_plan_id", p.id);
+
+    const { count: completedCount } = await supabase
+      .from("plan_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("weekly_plan_id", p.id)
+      .eq("status", "tamamlandi");
+
+    const { count: partialCount } = await supabase
+      .from("plan_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("weekly_plan_id", p.id)
+      .eq("status", "kismen_tamamlandi");
+
+    const { count: failedCount } = await supabase
+      .from("plan_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("weekly_plan_id", p.id)
+      .eq("status", "tamamlanmadi");
+
+    results.push({
+      week_start_date: p.week_start_date,
+      task_count: totalCount ?? 0,
+      completed: completedCount ?? 0,
+      partial: partialCount ?? 0,
+      failed: failedCount ?? 0,
+    });
+  }
+
+  return results;
+}
+
+/** Geçmiş haftanın planını mevcut haftaya kopyala */
+export async function restoreWeeklyPlan(sourceWeekStart: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Oturum açmanız gerekiyor" };
+
+  const currentWeekStart = getWeekStart(new Date());
+  if (sourceWeekStart === currentWeekStart) return { error: "Zaten mevcut haftadasınız" };
+
+  const { data: sourcePlan } = await supabase
+    .from("weekly_plans")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("week_start_date", sourceWeekStart)
+    .single();
+
+  if (!sourcePlan) return { error: "Kaynak plan bulunamadı" };
+
+  const { data: sourceTasks } = await supabase
+    .from("plan_tasks")
+    .select("day_of_week, subject_id, task_type, resource_id, user_resource_id, resource_name, question_count, youtube_video_id, target_duration")
+    .eq("weekly_plan_id", sourcePlan.id);
+
+  if (!sourceTasks || sourceTasks.length === 0) return { error: "Kaynak planda görev yok" };
+
+  let { data: currentPlan } = await supabase
+    .from("weekly_plans")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("week_start_date", currentWeekStart)
+    .single();
+
+  if (!currentPlan) {
+    const { data: newPlan, error } = await supabase
+      .from("weekly_plans")
+      .insert({ user_id: user.id, program_id: PROGRAM_ID, week_start_date: currentWeekStart })
+      .select("id")
+      .single();
+    if (error) return { error: error.message };
+    currentPlan = newPlan;
+  }
+
+  await supabase.from("plan_tasks").delete().eq("weekly_plan_id", currentPlan.id);
+
+  const newTasks = sourceTasks.map((t) => {
+    const ws = new Date(currentWeekStart + "T12:00:00");
+    ws.setDate(ws.getDate() + (t.day_of_week - 1));
+    const taskDate = `${ws.getFullYear()}-${String(ws.getMonth() + 1).padStart(2, "0")}-${String(ws.getDate()).padStart(2, "0")}`;
+    return {
+      weekly_plan_id: currentPlan.id,
+      task_date: taskDate,
+      day_of_week: t.day_of_week,
+      subject_id: t.subject_id,
+      task_type: t.task_type,
+      resource_id: t.resource_id,
+      user_resource_id: t.user_resource_id,
+      resource_name: t.resource_name,
+      question_count: t.question_count,
+      youtube_video_id: t.youtube_video_id,
+      target_duration: t.target_duration,
+    };
+  });
+
+  const { error } = await supabase.from("plan_tasks").insert(newTasks);
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard");
+  return { success: true, count: newTasks.length };
+}
+
 export async function getSubjects() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
