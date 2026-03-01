@@ -42,10 +42,21 @@ function loadStoredMessages(): { id: string; role: "user" | "assistant"; content
 
 function extractPlan(content: string): AiPlanDay[] | null {
   try {
-    const jsonMatch = content.match(/\{"plan"\s*:\s*\[[\s\S]+?\]\s*\}/);
-    if (!jsonMatch) return null;
-    const { plan } = JSON.parse(jsonMatch[0]) as { plan: AiPlanDay[] };
-    return Array.isArray(plan) ? plan : null;
+    // İç içe JSON'u doğru yakalamak için parantez sayacı kullan
+    const startIdx = content.indexOf('{"plan"');
+    if (startIdx === -1) return null;
+    let depth = 0;
+    let end = -1;
+    for (let i = startIdx; i < content.length; i++) {
+      if (content[i] === "{") depth++;
+      else if (content[i] === "}") {
+        depth--;
+        if (depth === 0) { end = i + 1; break; }
+      }
+    }
+    if (end === -1) return null;
+    const { plan } = JSON.parse(content.slice(startIdx, end)) as { plan: AiPlanDay[] };
+    return Array.isArray(plan) && plan.length > 0 ? plan : null;
   } catch {
     return null;
   }

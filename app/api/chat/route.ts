@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, createDataStreamResponse, formatDataStreamPart } from "ai";
-import { filterSubjectDetailsByField } from "@/lib/exam-config";
+import { filterSubjectDetailsByField, getExamConfig } from "@/lib/exam-config";
 import type { StudyField } from "@/lib/study-field";
 
 function streamErrorResponse(message: string, status: number) {
@@ -68,24 +68,32 @@ export async function POST(req: NextRequest) {
       const lines = exams
         .map((e, i) => {
           const net = e.correct - e.wrong * 0.25;
+          const examType = e.type?.toLowerCase() as "tyt" | "ayt";
+          const config = getExamConfig(examType ?? "tyt", studyField as StudyField | null);
+          const subjectQs = config.subjectQuestions;
           const filteredDetails = filterSubjectDetailsByField(
             e.subject_details,
-            e.type?.toLowerCase() ?? "tyt",
+            examType ?? "tyt",
             studyField as StudyField | null
           );
           let line = `${i + 1}. ${e.name} (${e.type}) → ${net.toFixed(1)} net (${e.correct}D/${e.wrong}Y, ${e.time}dk)`;
           if (filteredDetails && Object.keys(filteredDetails).length > 0) {
             const details = Object.entries(filteredDetails)
-              .map(([s, d]) => `${s}: ${(d.correct - d.wrong * 0.25).toFixed(1)}net`)
+              .map(([s, d]) => {
+                const maxQ = subjectQs[s];
+                const subNet = d.correct - d.wrong * 0.25;
+                const pct = maxQ ? `%${Math.round((subNet / maxQ) * 100)}` : "";
+                return `${s}(${maxQ ?? "?"}soru): ${subNet.toFixed(1)}net ${pct}`;
+              })
               .join(" | ");
             line += `\n   [${details}]`;
           }
           return line;
         })
         .join("\n");
-      contextParts.push(`Öğrenci deneme sonuçları:\n${lines}`);
+      contextParts.push(`Deneme sonuçları:\n${lines}\n\nNOT: Parantez içindeki soru sayısı o dersin sınavdaki toplam sorusudur. Zayıflığı net oranı (net/maxSoru) ile değerlendir, mutlak net sayısıyla değil.`);
     }
-    if (studyField) contextParts.push(`Çalışma alanı: ${studyField}`);
+    if (studyField) contextParts.push(`Alan: ${studyField}`);
     if (tytTargetNet) contextParts.push(`TYT hedef net: ${tytTargetNet}`);
     if (aytTargetNet) contextParts.push(`AYT hedef net: ${aytTargetNet}`);
     const contextStr = contextParts.length > 0 ? `\n\n[Bağlam]\n${contextParts.join("\n")}` : "";
@@ -98,16 +106,16 @@ export async function POST(req: NextRequest) {
       /^(hadi\s+)?(oluştur|hazırla|yap)\s*(bir)?\s*(program|plan)/i.test(lastUserText.trim()) ||
       /^(evet|tamam|e|olur)\s*$/i.test(lastUserText.trim());
 
-    const planSystemPrompt = `Sen StudyLab platformunun YKS hazırlık koç yapay zekasısın.${contextStr}
+    const planSystemPrompt = `Sen StudyLab'ın YKS koç yapay zekasısın.${contextStr}
 
-Öğrenci haftalık çalışma programı istiyor. Verilerini analiz et, zayıf derslere fazla süre ayır.
+Kullanıcı haftalık çalışma programı istiyor. Verilerini analiz et. Zayıflığı net oranına göre belirle (net/maxSoru), mutlak net sayısına göre değil. Düşük oranlı derslere daha fazla süre ayır.
 
-SADECE aşağıdaki JSON formatını döndür. Başka hiçbir metin, açıklama, markdown veya yorum ekleme:
+SADECE aşağıdaki JSON formatını döndür. Başka HİÇBİR metin, açıklama, markdown, \`\`\`json etiketi EKLEME:
 {"plan":[{"day":"Pazartesi","tasks":[{"subject":"Türkçe","duration_minutes":90,"description":"Fiilimsiler konu tekrarı"}]},{"day":"Salı","tasks":[]},{"day":"Çarşamba","tasks":[]},{"day":"Perşembe","tasks":[]},{"day":"Cuma","tasks":[]},{"day":"Cumartesi","tasks":[]},{"day":"Pazar","tasks":[]}]}
 
-Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject değerleri: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe. duration_minutes: 60-120 tam sayı.`;
+Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject değerleri: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe. duration_minutes: 60-120 tam sayı. Sadece JSON döndür, başka hiçbir şey yazma.`;
 
-    const chatSystemPrompt = `Sen StudyLab adlı platformun uzman YKS, LGS ve KPSS eğitim koçusun. Adın AI Mentör. Öğrencilerin deneme netlerini analiz eder, onlara stratejik, motive edici ve tamamen Türk eğitim sistemine (TYT/AYT/KPSS) uygun ders çalışma programları hazırlarsın. Yanıtların kısa, net, modern ve madde imli olmalı.${contextStr}`;
+    const chatSystemPrompt = `Sen StudyLab adlı platformun uzman YKS koçusun. Adın AI Mentör. Kullanıcıyla doğrudan "sen" diye hitap et, "öğrenci" deme. Deneme netlerini analiz eder, stratejik ve motive edici tavsiyeler verirsin. Yanıtların kısa, samimi ve Türk eğitim sistemine (TYT/AYT) uygun olsun. Zayıflığı değerlendirirken o dersin toplam soru sayısına göre net oranını dikkate al.${contextStr}`;
 
     const groq = createOpenAI({
       apiKey,

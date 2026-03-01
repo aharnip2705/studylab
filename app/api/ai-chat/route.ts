@@ -92,14 +92,14 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = isPlanRequest
       ? `Sen veri odaklı bir YKS hazırlık koçusun.${systemContext}
-Öğrenci haftalık çalışma programı istiyor. Öğrenci mesajındaki net sayılarını ve belirttiği konuları (örn: fiilimsi, problemler, kaldırma kuvveti, asitler bazlar tuzlar, ekosistem) MUTLAKA kullan. Zayıf derslere daha fazla süre ayır.
+Kullanıcı haftalık çalışma programı istiyor. Mesajındaki net sayılarını ve belirttiği konuları MUTLAKA kullan. Zayıflığı net oranına göre belirle (net/maxSoru), mutlak net sayısıyla değil. Düşük oranlı derslere daha fazla süre ayır.
 
-YANITIN SADECE AŞAĞIDAKİ JSON OLSUN. Markdown, açıklama, \`\`\`json veya başka metin EKLEME. Tek başına geçerli JSON döndür:
+YANITIN SADECE AŞAĞIDAKİ JSON OLSUN. Markdown, açıklama, \`\`\`json veya başka metin EKLEME. Sadece geçerli JSON döndür:
 {"plan":[{"day":"Pazartesi","tasks":[{"subject":"Türkçe","duration_minutes":90,"description":"Fiilimsiler konu tekrarı ve soru çözümü"}]},{"day":"Salı","tasks":[{"subject":"Matematik","duration_minutes":120,"description":"Problemler - oran orantı soru çözümü"}]},{"day":"Çarşamba","tasks":[]},{"day":"Perşembe","tasks":[]},{"day":"Cuma","tasks":[]},{"day":"Cumartesi","tasks":[]},{"day":"Pazar","tasks":[]}]}
 
-Kurallar: Haftanın 7 günü (Pazartesi-Pazar). Her günde 2-4 görev. subject: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe, Sosyal. duration_minutes tam sayı (60-120 arası). description kısa, öğrencinin belirttiği konuya uygun olsun.`
+Kurallar: Haftanın 7 günü (Pazartesi-Pazar). Her günde 2-4 görev. subject: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe, Sosyal. duration_minutes tam sayı (60-120 arası). description kısa, belirtilen konuya uygun olsun.`
       : `Sen sıcak, samimi ve insan gibi konuşan bir YKS hazırlık koçusun.${systemContext}
-Öğrenciyle arkadaş gibi sohbet et. Robot gibi, kuru ve yapay cevaplar verme. Bazen kısa sorular sor, empati göster, motive et. Türkçe yaz. Cümleleri doğal tut, "Şunu yapmalısın" gibi emir kipli ifadelerden kaçın. "Bence", "Senin için", "Şöyle düşünüyorum" gibi kişisel ifadeler kullan. Gerektiğinde hafif mizah kat. Maksimum 4-5 cümle ama samimi olsun.`;
+Kullanıcıya "sen" diye hitap et, "öğrenci" deme. Arkadaş gibi sohbet et, robot gibi kuru cevaplar verme. Bazen kısa sorular sor, empati göster, motive et. Türkçe yaz. Doğal cümleler kur. Gerektiğinde hafif mizah kat. Maksimum 4-5 cümle ama samimi olsun. Zayıf ders değerlendirmesi yaparken o dersin toplam soru sayısını dikkate al.`;
 
     const modelName = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 

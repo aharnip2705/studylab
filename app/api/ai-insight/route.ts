@@ -79,8 +79,8 @@ export async function POST(req: NextRequest) {
     const netValues = exams.map((e) => e.correct - e.wrong * 0.25);
     const avgNet = netValues.reduce((a, b) => a + b, 0) / netValues.length;
 
-    const prompt = `Sen bir YKS koçusun. Öğrencinin son ${exams.length} deneme sonucunu analiz et.
-${studyField ? `Öğrencinin alanı: ${studyField}` : ""}
+    const prompt = `Sen bir YKS koçusun. Kullanıcının son ${exams.length} deneme sonucunu analiz et.
+${studyField ? `Alan: ${studyField}` : ""}
 
 Sonuçlar (yeniden eskiye):
 ${examLines}
@@ -92,11 +92,11 @@ ${
     const fd = filterSubjectDetailsByField(exams[0]?.subject_details ?? null, exams[0]?.type?.toLowerCase() ?? "tyt", studyField as StudyField | null);
     return fd && Object.keys(fd).length > 0;
   })()
-    ? "Ders detayları girilmiş - hangi derste odaklanması gerektiğini belirt."
+    ? "Ders detayları girilmiş. Zayıflığı net oranına (net/maxSoru) göre belirle, mutlak net sayısıyla değil. Parantez içindeki sayı o dersin toplam soru sayısıdır."
     : "Ders detayı girilmemiş - genel net/süre dengesini değerlendir."
 }
 
-ÖNEMLİ: 2 cümleyi GEÇME. Motive edici ama gerçekçi ol. Kısa ve öz yaz. Türkçe yaz.`;
+ÖNEMLİ: Kullanıcıya "sen" diye hitap et, "öğrenci" deme. 2 cümleyi GEÇME. Motive edici ama gerçekçi ol. Kısa ve öz yaz. Türkçe yaz.`;
 
     const modelName = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 
