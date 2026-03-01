@@ -79,9 +79,9 @@ html[data-bg-dark="true"] .dashboard-main-bg .task-card .text-slate-900,
 html[data-bg-dark="true"] .dashboard-main-bg .task-card .dark\:text-white {
   color: rgba(255, 255, 255, 0.95) !important;
 }
-html[data-bg-dark="true"] .dashboard-main-bg .task-card .border-l-green-500 { border-left-color: rgba(34, 197, 94, 0.8) !important; }
-html[data-bg-dark="true"] .dashboard-main-bg .task-card .border-l-amber-500 { border-left-color: rgba(245, 158, 11, 0.8) !important; }
-html[data-bg-dark="true"] .dashboard-main-bg .task-card .border-l-red-500 { border-left-color: rgba(239, 68, 68, 0.8) !important; }
+html[data-bg-dark="true"] .dashboard-main-bg .task-card[class*="border-l-green"] { border-left-color: rgba(34, 197, 94, 0.9) !important; }
+html[data-bg-dark="true"] .dashboard-main-bg .task-card[class*="border-l-amber"] { border-left-color: rgba(245, 158, 11, 0.9) !important; }
+html[data-bg-dark="true"] .dashboard-main-bg .task-card[class*="border-l-red"] { border-left-color: rgba(239, 68, 68, 0.9) !important; }
 html[data-bg-dark="true"] .dashboard-main-bg .task-card [class*="bg-white/60"],
 html[data-bg-dark="true"] .dashboard-main-bg .task-card [class*="dark:bg-slate-700"] {
   background: rgba(255, 255, 255, 0.15) !important;
@@ -105,11 +105,15 @@ html[data-bg-dark="true"] .dashboard-main-bg aside .text-slate-700,
 html[data-bg-dark="true"] .dashboard-main-bg aside .text-slate-300 {
   color: rgba(255, 255, 255, 0.9) !important;
 }
+html[data-bg-dark="true"] .dashboard-main-bg aside a.bg-indigo-100 {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: rgb(255, 255, 255) !important;
+}
 
-/* Haftalık plan gün sütunları */
+/* Haftalık plan gün sütunları - koyu bg'de belirgin çerçeve */
 html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll > div > div {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 2px solid rgba(255, 255, 255, 0.35) !important;
 }
 html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll .text-slate-900,
 html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll .dark\:text-white {

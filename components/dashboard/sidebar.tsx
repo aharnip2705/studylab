@@ -53,7 +53,7 @@ export function DashboardSidebar() {
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
-                      isActive ? "bg-slate-100 text-slate-800 dark:bg-slate-700/50 dark:text-slate-200" : "text-slate-700 dark:text-slate-300"
+                      isActive ? "bg-slate-200 text-slate-900 dark:bg-slate-700/50 dark:text-slate-200" : "text-slate-700 dark:text-slate-300"
                     }`}
                   >
                     <Icon className="h-5 w-5 shrink-0" />
@@ -100,8 +100,8 @@ export function DashboardSidebar() {
                 collapsed ? "justify-center px-0" : ""
               } ${
                 isActive
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200"
+                  : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               }`}
               title={collapsed ? item.label : undefined}
             >

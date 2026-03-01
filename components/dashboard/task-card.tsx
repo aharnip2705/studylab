@@ -35,9 +35,9 @@ const typeLabels = {
 };
 
 const statusColors = {
-  tamamlandi: "border-l-green-500 bg-green-50/50 dark:bg-green-900/10",
-  kismen_tamamlandi: "border-l-amber-500 bg-amber-50/50 dark:bg-amber-900/10",
-  tamamlanmadi: "border-l-red-500 bg-red-50/50 dark:bg-red-900/10",
+  tamamlandi: "border-l-4 border-l-green-600 bg-green-100/80 dark:bg-green-900/30 dark:border-l-green-400",
+  kismen_tamamlandi: "border-l-4 border-l-amber-600 bg-amber-100/80 dark:bg-amber-900/30 dark:border-l-amber-400",
+  tamamlanmadi: "border-l-4 border-l-red-600 bg-red-100/80 dark:bg-red-900/30 dark:border-l-red-400",
 };
 
 export function TaskCard({

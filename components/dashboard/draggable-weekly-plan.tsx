@@ -145,12 +145,12 @@ export function DraggableWeeklyPlan({ planId, days, initialTasksByDateRecord, on
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, day.date)}
               style={{ animationDelay: `${idx * 40}ms` }}
-              className={`animate-item-in flex min-w-[280px] snap-start flex-col rounded-xl p-3 transition-colors ${
+              className={`animate-item-in flex min-w-[280px] snap-start flex-col rounded-xl border-2 p-3 transition-colors ${
                 isDragOver
-                  ? "border-2 border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-900/20"
+                  ? "border-blue-500 bg-blue-100/80 dark:border-blue-400 dark:bg-blue-900/30"
                   : isToday
-                    ? "border-2 border-indigo-500 bg-indigo-50/40 shadow-lg shadow-indigo-500/10 dark:border-indigo-400 dark:bg-indigo-900/20"
-                    : "border-2 border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                    ? "border-indigo-500 bg-indigo-100/80 dark:border-indigo-400 dark:bg-indigo-900/30 shadow-lg shadow-indigo-500/20"
+                    : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-800/90"
               }`}
             >
               <div className={`mb-3 flex shrink-0 items-center justify-between border-b pb-2 ${isToday ? "border-indigo-200 dark:border-indigo-700/50" : "border-slate-200 dark:border-slate-700"}`}>
