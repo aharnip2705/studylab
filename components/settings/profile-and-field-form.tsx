@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { mutate } from "swr";
 import { getProfile, updateStudyField, updateTargetNets } from "@/lib/actions/profile";
 import { STUDY_FIELD_OPTIONS, type StudyField } from "@/lib/study-field";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ export function ProfileAndFieldForm({ fullName, email }: ProfileAndFieldFormProp
       setMessage({ type: "error", text: r1.error ?? r2.error ?? "Hata oluştu" });
     } else {
       setMessage({ type: "success", text: "Ayarlar kaydedildi." });
+      mutate("profile");
       router.refresh();
     }
   }

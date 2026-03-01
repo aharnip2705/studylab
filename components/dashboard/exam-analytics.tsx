@@ -219,31 +219,64 @@ function NetTrendChart({ data }: { data: { name: string; net: number }[] }) {
 }
 
 function SubjectBreakdown({
-  details,
+  exams,
   examType,
   studyField,
 }: {
-  details: Record<string, { correct: number; wrong: number }>;
+  exams: ComputedExam[];
   examType?: string;
   studyField?: StudyField | null;
 }) {
-  const entries = Object.entries(details);
-  if (entries.length === 0) return null;
   const config = examType ? getExamConfig(examType as "tyt" | "ayt", studyField ?? null) : null;
   const subjectQuestions = (config as { subjectQuestions?: Record<string, number> } | null)
     ?.subjectQuestions ?? {};
 
+  const examsWithDetails = exams.filter(
+    (e) => e.subject_details && Object.keys(e.subject_details).length > 0
+  );
+  if (examsWithDetails.length === 0) return null;
+
+  const aggregated: Record<
+    string,
+    { sumNet: number; sumCorrect: number; sumWrong: number; sumEmpty: number; count: number }
+  > = {};
+  for (const exam of examsWithDetails) {
+    const filtered = filterSubjectDetailsByField(
+      exam.subject_details,
+      exam.exam_type,
+      studyField ?? null
+    );
+    if (!filtered) continue;
+    for (const [subject, { correct, wrong }] of Object.entries(filtered)) {
+      const maxQ = subjectQuestions[subject];
+      const empty = maxQ != null ? Math.max(0, maxQ - correct - wrong) : 0;
+      if (!aggregated[subject]) {
+        aggregated[subject] = { sumNet: 0, sumCorrect: 0, sumWrong: 0, sumEmpty: 0, count: 0 };
+      }
+      aggregated[subject].sumNet += calculateNet(correct, wrong);
+      aggregated[subject].sumCorrect += correct;
+      aggregated[subject].sumWrong += wrong;
+      aggregated[subject].sumEmpty += empty;
+      aggregated[subject].count += 1;
+    }
+  }
+  const entries = Object.entries(aggregated);
+  if (entries.length === 0) return null;
+
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
       <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
-        Ders Bazlı Performans
+        Ders Bazlı Performans (Denemelere Göre Ortalama)
       </p>
       <div className="space-y-3">
-        {entries.map(([subject, { correct, wrong }]) => {
-          const net = calculateNet(correct, wrong);
-          const total = correct + wrong;
+        {entries.map(([subject, { sumNet, sumCorrect, sumWrong, sumEmpty, count }]) => {
+          const avgNet = sumNet / count;
+          const avgCorrect = sumCorrect / count;
+          const avgWrong = sumWrong / count;
+          const avgEmpty = sumEmpty / count;
           const maxQ = subjectQuestions[subject];
-          const pct = total > 0 ? (correct / total) * 100 : 0;
+          const total = maxQ ?? avgCorrect + avgWrong + avgEmpty;
+          const pct = total > 0 ? (avgCorrect / total) * 100 : 0;
           return (
             <div key={subject} className="space-y-1">
               <div className="flex items-center justify-between">
@@ -254,7 +287,8 @@ function SubjectBreakdown({
                   )}
                 </span>
                 <span className="text-xs text-slate-500">
-                  {net.toFixed(1)} net &middot; {correct}D {wrong}Y
+                  {avgNet.toFixed(1)} net (ort.) &middot;{" "}
+                  {avgCorrect.toFixed(0)}D {avgWrong.toFixed(0)}Y {avgEmpty.toFixed(0)}B
                 </span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
@@ -274,8 +308,6 @@ function SubjectBreakdown({
 function ExamHistoryTable({
   exams,
   onDelete,
-  tytTargetNet,
-  aytTargetNet,
 }: {
   exams: ComputedExam[];
   onDelete: (id: string) => void;
@@ -297,7 +329,6 @@ function ExamHistoryTable({
               <th className="pb-2 pr-4 font-medium">Net</th>
               <th className="pb-2 pr-4 font-medium">D/Y/B</th>
               <th className="pb-2 pr-4 font-medium">Süre</th>
-              <th className="pb-2 font-medium">Hedef</th>
               <th className="pb-2" />
             </tr>
           </thead>
@@ -329,16 +360,6 @@ function ExamHistoryTable({
                 </td>
                 <td className="py-2.5 pr-4 text-slate-400">
                   {e.total_time_minutes} dk
-                </td>
-                <td className="py-2.5 pr-4 text-slate-400">
-                  {(() => {
-                    const target =
-                      e.net_target ??
-                      (e.exam_type === "tyt" ? tytTargetNet : aytTargetNet);
-                    return target != null
-                      ? `${formatTargetNet(target)} net`
-                      : "—";
-                  })()}
                 </td>
                 <td className="py-2.5">
                   <button
@@ -489,16 +510,15 @@ export function ExamAnalytics({ exams, studyField, tytTargetNet, aytTargetNet }:
       {/* Trend Chart */}
       {computed.length > 1 && <NetTrendChart data={trendData} />}
 
-      {/* Subject Breakdown - sadece alan içi dersler */}
+      {/* Subject Breakdown - tüm denemelere göre ortalama, boş sorular dahil */}
       {(() => {
-        const filtered = filterSubjectDetailsByField(
-          latest.subject_details ?? null,
-          latest.exam_type,
-          studyField ?? null
+        const sameTypeExams = computed.filter((e) => e.exam_type === latest.exam_type);
+        const hasAnyDetails = sameTypeExams.some(
+          (e) => e.subject_details && Object.keys(e.subject_details).length > 0
         );
-        return filtered && Object.keys(filtered).length > 0 ? (
+        return hasAnyDetails ? (
           <SubjectBreakdown
-            details={filtered}
+            exams={sameTypeExams}
             examType={latest.exam_type}
             studyField={studyField ?? null}
           />

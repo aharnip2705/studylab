@@ -43,6 +43,7 @@ export function BackgroundProvider({ children }: { children: React.ReactNode }) 
         setFluidClass("");
         document.documentElement.removeAttribute("data-custom-bg");
         document.documentElement.removeAttribute("data-bg-dark");
+        document.documentElement.removeAttribute("data-bg-light");
         return;
       }
 
@@ -50,10 +51,21 @@ export function BackgroundProvider({ children }: { children: React.ReactNode }) 
       const isDarkBg =
         s?.type === "fluid" ||
         (s?.type === "solid" && s.value && isDarkColor(s.value as string));
+      const isLightBg =
+        s?.type === "solid" &&
+        s.value &&
+        typeof s.value === "string" &&
+        /^#[0-9A-Fa-f]+$/.test(s.value) &&
+        !isDarkColor(s.value);
       if (isDarkBg) {
         document.documentElement.setAttribute("data-bg-dark", "true");
+        document.documentElement.removeAttribute("data-bg-light");
+      } else if (isLightBg) {
+        document.documentElement.setAttribute("data-bg-light", "true");
+        document.documentElement.removeAttribute("data-bg-dark");
       } else {
         document.documentElement.removeAttribute("data-bg-dark");
+        document.documentElement.removeAttribute("data-bg-light");
       }
 
       if (s?.type === "fluid") {
@@ -92,6 +104,7 @@ export function BackgroundProvider({ children }: { children: React.ReactNode }) 
       window.removeEventListener("bg-settings-change", apply);
       document.documentElement.removeAttribute("data-custom-bg");
       document.documentElement.removeAttribute("data-bg-dark");
+      document.documentElement.removeAttribute("data-bg-light");
     };
   }, []);
 

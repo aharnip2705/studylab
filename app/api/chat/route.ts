@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: "Pro abonelik gerekli" }), { status: 403 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "AI servisi yapılandırılmamış" }), { status: 500 });
     }

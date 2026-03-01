@@ -12,6 +12,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "StudyLab",
   description: "YKS'ye hazırlanan öğrenciler için akıllı ders planlama ve takip paneli",
+  icons: {
+    icon: "/icon.jpg",
+  },
 };
 
 export default function RootLayout({

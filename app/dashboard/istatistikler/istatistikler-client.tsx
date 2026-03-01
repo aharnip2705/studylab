@@ -151,12 +151,7 @@ export function IstatistiklerClient() {
             aytTargetNet={aytTargetNet}
           />
           {computed.length > 0 && (
-            <ExamHistoryTable
-              exams={computed}
-              onDelete={handleDeleteExam}
-              tytTargetNet={tytTargetNet}
-              aytTargetNet={aytTargetNet}
-            />
+            <ExamHistoryTable exams={computed} onDelete={handleDeleteExam} />
           )}
         </div>
       ) : (

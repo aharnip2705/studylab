@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ insight: null });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
     if (!apiKey) {
       return NextResponse.json(
         { error: "AI servisi yapılandırılmamış" },
