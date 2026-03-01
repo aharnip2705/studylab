@@ -167,9 +167,9 @@ export function ExamEntryModal({
       : 180;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-        <div className="mb-6 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="mx-4 flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between p-6 pb-0">
           <h2 className="text-lg font-semibold text-white">Deneme Sonucu Ekle</h2>
           <button
             onClick={() => { resetForm(); onClose(); }}
@@ -181,7 +181,8 @@ export function ExamEntryModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden pt-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4 pr-5">
           {/* Exam Type Toggle */}
           <div className="flex gap-2 rounded-xl bg-slate-800/60 p-1">
             {(["tyt", "ayt"] as const).map((t) => (
@@ -293,12 +294,18 @@ export function ExamEntryModal({
             <div className="space-y-2 rounded-xl border border-slate-700/50 bg-slate-800/30 p-3">
               {subjects.map((s) => (
                 <div key={s} className="flex items-center gap-3">
-                  <span className="w-20 shrink-0 text-xs font-medium text-slate-300">
+                  <span className="w-28 shrink-0 text-xs font-medium text-slate-300">
                     {s}
+                    {(config as { subjectQuestions?: Record<string, number> }).subjectQuestions?.[s] != null && (
+                      <span className="ml-1 font-normal text-slate-600">
+                        ({(config as { subjectQuestions?: Record<string, number> }).subjectQuestions![s]} soru)
+                      </span>
+                    )}
                   </span>
                   <input
                     type="number"
                     min={0}
+                    max={(config as { subjectQuestions?: Record<string, number> }).subjectQuestions?.[s] ?? undefined}
                     placeholder="D"
                     value={subjectDetails[s]?.correct ?? ""}
                     onChange={(e) => handleSubjectChange(s, "correct", e.target.value)}
@@ -307,6 +314,7 @@ export function ExamEntryModal({
                   <input
                     type="number"
                     min={0}
+                    max={(config as { subjectQuestions?: Record<string, number> }).subjectQuestions?.[s] ?? undefined}
                     placeholder="Y"
                     value={subjectDetails[s]?.wrong ?? ""}
                     onChange={(e) => handleSubjectChange(s, "wrong", e.target.value)}
@@ -320,7 +328,9 @@ export function ExamEntryModal({
           {error && (
             <p className="text-sm text-rose-400">{error}</p>
           )}
+          </div>
 
+          <div className="shrink-0 border-t border-slate-800 p-4">
           <button
             type="submit"
             disabled={saving}
@@ -328,6 +338,7 @@ export function ExamEntryModal({
           >
             {saving ? "Kaydediliyor..." : "Kaydet"}
           </button>
+          </div>
         </form>
       </div>
     </div>

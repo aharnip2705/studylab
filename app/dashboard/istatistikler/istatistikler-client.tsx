@@ -18,16 +18,14 @@ export function IstatistiklerClient() {
   const { data: profile } = useSWR("profile", getProfile);
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "exams">("exams");
-  const [examFilter, setExamFilter] = useState<"all" | "tyt" | "ayt">("all");
+  const [examFilter, setExamFilter] = useState<"tyt" | "ayt">("tyt");
 
   const proActive = subscription?.proActive ?? false;
   const studyField = (profile as { study_field?: string } | null)?.study_field ?? null;
   const tytTargetNet = (profile as { tyt_target_net?: number | null } | null)?.tyt_target_net ?? null;
   const aytTargetNet = (profile as { ayt_target_net?: number | null } | null)?.ayt_target_net ?? null;
 
-  const filteredExams = (exams ?? []).filter((e) =>
-    examFilter === "all" ? true : e.exam_type === examFilter
-  );
+  const filteredExams = (exams ?? []).filter((e) => e.exam_type === examFilter);
 
   const handleExamAdded = useCallback(() => {
     revalidateKey("practiceExams");
@@ -122,7 +120,6 @@ export function IstatistiklerClient() {
       {activeTab === "exams" && (
         <div className="flex gap-1 rounded-lg bg-slate-800/30 p-0.5">
           {([
-            { key: "all" as const, label: "Tümü" },
             { key: "tyt" as const, label: "TYT" },
             { key: "ayt" as const, label: "AYT" },
           ]).map(({ key, label }) => (
@@ -136,11 +133,9 @@ export function IstatistiklerClient() {
               }`}
             >
               {label}
-              {key !== "all" && (
-                <span className="ml-1 text-[10px] text-slate-600">
-                  ({(exams ?? []).filter((e) => e.exam_type === key).length})
-                </span>
-              )}
+              <span className="ml-1 text-[10px] text-slate-600">
+                ({(exams ?? []).filter((e) => e.exam_type === key).length})
+              </span>
             </button>
           ))}
         </div>
@@ -149,9 +144,19 @@ export function IstatistiklerClient() {
       {/* Tab Content */}
       {activeTab === "exams" ? (
         <div className="space-y-5">
-          <ExamAnalytics exams={filteredExams} />
+          <ExamAnalytics
+            exams={filteredExams}
+            studyField={studyField as import("@/lib/study-field").StudyField | null}
+            tytTargetNet={tytTargetNet}
+            aytTargetNet={aytTargetNet}
+          />
           {computed.length > 0 && (
-            <ExamHistoryTable exams={computed} onDelete={handleDeleteExam} />
+            <ExamHistoryTable
+              exams={computed}
+              onDelete={handleDeleteExam}
+              tytTargetNet={tytTargetNet}
+              aytTargetNet={aytTargetNet}
+            />
           )}
         </div>
       ) : (

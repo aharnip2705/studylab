@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText } from "ai";
+import { filterSubjectDetailsByField } from "@/lib/exam-config";
+import type { StudyField } from "@/lib/study-field";
 
 interface ExamInput {
   name: string;
@@ -51,15 +53,20 @@ export async function POST(req: NextRequest) {
     const tytTargetNet = body.tytTargetNet as number | null;
     const aytTargetNet = body.aytTargetNet as number | null;
 
-    // Bağlam oluştur
+    // Bağlam oluştur (alan dışı dersler filtrelenir)
     const contextParts: string[] = [];
     if (exams.length > 0) {
       const lines = exams
         .map((e, i) => {
           const net = e.correct - e.wrong * 0.25;
+          const filteredDetails = filterSubjectDetailsByField(
+            e.subject_details,
+            e.type?.toLowerCase() ?? "tyt",
+            studyField as StudyField | null
+          );
           let line = `${i + 1}. ${e.name} (${e.type}) → ${net.toFixed(1)} net (${e.correct}D/${e.wrong}Y, ${e.time}dk)`;
-          if (e.subject_details && Object.keys(e.subject_details).length > 0) {
-            const details = Object.entries(e.subject_details)
+          if (filteredDetails && Object.keys(filteredDetails).length > 0) {
+            const details = Object.entries(filteredDetails)
               .map(([s, d]) => `${s}: ${(d.correct - d.wrong * 0.25).toFixed(1)}net`)
               .join(" | ");
             line += `\n   [${details}]`;
@@ -94,7 +101,7 @@ Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject değerleri: T
     const chatSystemPrompt = `Sen StudyLab adlı platformun uzman YKS, LGS ve KPSS eğitim koçusun. Adın AI Mentör. Öğrencilerin deneme netlerini analiz eder, onlara stratejik, motive edici ve tamamen Türk eğitim sistemine (TYT/AYT/KPSS) uygun ders çalışma programları hazırlarsın. Yanıtların kısa, net, modern ve madde imli olmalı.${contextStr}`;
 
     const google = createGoogleGenerativeAI({ apiKey });
-    const modelName = (process.env.GEMINI_MODEL as string | undefined) ?? "gemini-2.0-flash-exp";
+    const modelName = (process.env.GEMINI_MODEL as string | undefined) ?? "gemini-1.5-flash";
 
     const result = streamText({
       model: google(modelName),

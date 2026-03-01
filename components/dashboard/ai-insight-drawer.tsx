@@ -283,7 +283,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                         {tytTargetNet != null && (
                           <div className="mt-2">
                             <div className="mb-1 flex justify-between text-[10px] text-slate-400">
-                              <span>Hedef: {tytTargetNet}</span>
+                              <span>Hedef: {tytTargetNet % 1 === 0 ? Math.round(tytTargetNet) : tytTargetNet.toFixed(1)}</span>
                               <span>
                                 {Math.min(
                                   100,
@@ -317,7 +317,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                         {aytTargetNet != null && (
                           <div className="mt-2">
                             <div className="mb-1 flex justify-between text-[10px] text-slate-400">
-                              <span>Hedef: {aytTargetNet}</span>
+                              <span>Hedef: {aytTargetNet % 1 === 0 ? Math.round(aytTargetNet) : aytTargetNet.toFixed(1)}</span>
                               <span>
                                 {Math.min(
                                   100,

@@ -36,8 +36,10 @@ export function ProfileAndFieldForm({ fullName, email }: ProfileAndFieldFormProp
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!studyField) return;
-    const tytNum = tytTarget !== "" ? parseFloat(tytTarget) : null;
-    const aytNum = aytTarget !== "" ? parseFloat(aytTarget) : null;
+    const tytNum =
+      tytTarget !== "" ? Math.round(parseFloat(tytTarget) * 100) / 100 : null;
+    const aytNum =
+      aytTarget !== "" ? Math.round(parseFloat(aytTarget) * 100) / 100 : null;
     if (tytNum !== null && (tytNum <= 0 || tytNum > 120)) {
       setMessage({ type: "error", text: "TYT hedefi 0-120 arası olmalı." });
       return;

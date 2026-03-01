@@ -12,14 +12,20 @@ import {
   AreaChart,
 } from "recharts";
 import type { PracticeExam } from "@/lib/actions/practice-exams";
+import type { StudyField } from "@/lib/study-field";
 import {
   calculateNet,
   calculateTimePerQuestion,
   calculateSuccessRate,
+  filterSubjectDetailsByField,
+  getExamConfig,
 } from "@/lib/exam-config";
 
 interface ExamAnalyticsProps {
   exams: PracticeExam[];
+  studyField?: StudyField | null;
+  tytTargetNet?: number | null;
+  aytTargetNet?: number | null;
 }
 
 interface ComputedExam extends PracticeExam {
@@ -214,11 +220,18 @@ function NetTrendChart({ data }: { data: { name: string; net: number }[] }) {
 
 function SubjectBreakdown({
   details,
+  examType,
+  studyField,
 }: {
   details: Record<string, { correct: number; wrong: number }>;
+  examType?: string;
+  studyField?: StudyField | null;
 }) {
   const entries = Object.entries(details);
   if (entries.length === 0) return null;
+  const config = examType ? getExamConfig(examType as "tyt" | "ayt", studyField ?? null) : null;
+  const subjectQuestions = (config as { subjectQuestions?: Record<string, number> } | null)
+    ?.subjectQuestions ?? {};
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
@@ -229,11 +242,17 @@ function SubjectBreakdown({
         {entries.map(([subject, { correct, wrong }]) => {
           const net = calculateNet(correct, wrong);
           const total = correct + wrong;
+          const maxQ = subjectQuestions[subject];
           const pct = total > 0 ? (correct / total) * 100 : 0;
           return (
             <div key={subject} className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-300">{subject}</span>
+                <span className="text-xs font-medium text-slate-300">
+                  {subject}
+                  {maxQ != null && (
+                    <span className="ml-1 font-normal text-slate-600">({maxQ} soru)</span>
+                  )}
+                </span>
                 <span className="text-xs text-slate-500">
                   {net.toFixed(1)} net &middot; {correct}D {wrong}Y
                 </span>
@@ -255,9 +274,13 @@ function SubjectBreakdown({
 function ExamHistoryTable({
   exams,
   onDelete,
+  tytTargetNet,
+  aytTargetNet,
 }: {
   exams: ComputedExam[];
   onDelete: (id: string) => void;
+  tytTargetNet?: number | null;
+  aytTargetNet?: number | null;
 }) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
@@ -308,7 +331,14 @@ function ExamHistoryTable({
                   {e.total_time_minutes} dk
                 </td>
                 <td className="py-2.5 pr-4 text-slate-400">
-                  {e.net_target ? `${e.net_target} net` : "—"}
+                  {(() => {
+                    const target =
+                      e.net_target ??
+                      (e.exam_type === "tyt" ? tytTargetNet : aytTargetNet);
+                    return target != null
+                      ? `${formatTargetNet(target)} net`
+                      : "—";
+                  })()}
                 </td>
                 <td className="py-2.5">
                   <button
@@ -330,9 +360,16 @@ function ExamHistoryTable({
   );
 }
 
-export function ExamAnalytics({ exams }: ExamAnalyticsProps) {
+function formatTargetNet(n: number): string {
+  return n % 1 === 0 ? String(Math.round(n)) : n.toFixed(1);
+}
+
+export function ExamAnalytics({ exams, studyField, tytTargetNet, aytTargetNet }: ExamAnalyticsProps) {
   const computed = exams.map(computeExam);
   const latest = computed[0];
+  const effectiveNetTarget =
+    latest &&
+    (latest.net_target ?? (latest.exam_type === "tyt" ? tytTargetNet : aytTargetNet));
 
   if (!latest) {
     return (
@@ -369,14 +406,14 @@ export function ExamAnalytics({ exams }: ExamAnalyticsProps) {
         <CircularProgress
           value={latest.net}
           max={
-            latest.netTarget != null && latest.netTarget > 0
-              ? latest.netTarget
+            effectiveNetTarget != null && effectiveNetTarget > 0
+              ? effectiveNetTarget
               : latest.totalQuestions
           }
           label="Net"
           sublabel={
-            latest.netTarget != null && latest.netTarget > 0
-              ? `Hedef ${latest.netTarget} net`
+            effectiveNetTarget != null && effectiveNetTarget > 0
+              ? `Hedef ${formatTargetNet(effectiveNetTarget)} net`
               : `${latest.totalQuestions} soru`
           }
           color="#818cf8"
@@ -398,28 +435,28 @@ export function ExamAnalytics({ exams }: ExamAnalyticsProps) {
       </div>
 
       {/* Net Target Progress */}
-      {latest.net_target && latest.net_target > 0 && (
+      {effectiveNetTarget != null && effectiveNetTarget > 0 && (
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Hedefe Yaklaşma
             </p>
             <span className="text-sm font-bold text-white">
-              {latest.net.toFixed(1)} / {latest.net_target}
+              {latest.net.toFixed(1)} / {formatTargetNet(effectiveNetTarget)}
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-slate-800">
             <div
               className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-700"
               style={{
-                width: `${Math.min((latest.net / latest.net_target) * 100, 100)}%`,
+                width: `${Math.min((latest.net / effectiveNetTarget) * 100, 100)}%`,
               }}
             />
           </div>
           <p className="mt-1.5 text-[11px] text-slate-500">
-            {latest.net >= latest.net_target
+            {latest.net >= effectiveNetTarget
               ? "Hedefine ulaştın!"
-              : `Hedefe ${(latest.net_target - latest.net).toFixed(1)} net kaldı`}
+              : `Hedefe ${(effectiveNetTarget - latest.net).toFixed(1)} net kaldı`}
           </p>
         </div>
       )}
@@ -452,10 +489,21 @@ export function ExamAnalytics({ exams }: ExamAnalyticsProps) {
       {/* Trend Chart */}
       {computed.length > 1 && <NetTrendChart data={trendData} />}
 
-      {/* Subject Breakdown */}
-      {latest.subject_details && (
-        <SubjectBreakdown details={latest.subject_details} />
-      )}
+      {/* Subject Breakdown - sadece alan içi dersler */}
+      {(() => {
+        const filtered = filterSubjectDetailsByField(
+          latest.subject_details ?? null,
+          latest.exam_type,
+          studyField ?? null
+        );
+        return filtered && Object.keys(filtered).length > 0 ? (
+          <SubjectBreakdown
+            details={filtered}
+            examType={latest.exam_type}
+            studyField={studyField ?? null}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }

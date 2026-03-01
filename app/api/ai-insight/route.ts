@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { filterSubjectDetailsByField } from "@/lib/exam-config";
+import type { StudyField } from "@/lib/study-field";
 
 interface ExamSummary {
   name: string;
@@ -58,9 +60,14 @@ export async function POST(req: NextRequest) {
     const examLines = exams
       .map((e, i) => {
         const net = e.correct - e.wrong * 0.25;
+        const filteredDetails = filterSubjectDetailsByField(
+          e.subject_details,
+          e.type?.toLowerCase() ?? "tyt",
+          studyField as StudyField | null
+        );
         let line = `${i + 1}. ${e.name} (${e.type.toUpperCase()}) - ${net.toFixed(1)} net, ${e.correct}D/${e.wrong}Y, ${e.time} dk`;
-        if (e.subject_details) {
-          const details = Object.entries(e.subject_details)
+        if (filteredDetails && Object.keys(filteredDetails).length > 0) {
+          const details = Object.entries(filteredDetails)
             .map(([s, d]) => `${s}: ${d.correct}D/${d.wrong}Y`)
             .join(", ");
           line += ` [${details}]`;
@@ -81,7 +88,10 @@ ${examLines}
 Son 5 deneme ortalaması: ${avgNet.toFixed(1)} net
 
 ${
-  exams[0]?.subject_details
+  (() => {
+        const fd = filterSubjectDetailsByField(exams[0]?.subject_details ?? null, exams[0]?.type?.toLowerCase() ?? "tyt", studyField as StudyField | null);
+        return fd && Object.keys(fd).length > 0;
+      })()
     ? "Ders detayları girilmiş - hangi derste odaklanması gerektiğini belirt."
     : "Ders detayı girilmemiş - genel net/süre dengesini değerlendir."
 }
