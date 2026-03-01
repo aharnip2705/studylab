@@ -132,6 +132,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
     handleSubmit,
     isLoading,
     setMessages,
+    error,
   } = useChat({
     api: "/api/chat",
     initialMessages: loadStoredMessages(),
@@ -371,6 +372,18 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                     <p className="text-sm text-slate-500">Analiz hazırlanamadı.</p>
                   )}
                 </div>
+
+                {/* Hata mesajı */}
+                {error && (
+                  <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4">
+                    <p className="text-sm font-medium text-rose-400">
+                      {error.message || "Bir hata oluştu. Lütfen tekrar deneyin."}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      API anahtarınızı (Vercel: GEMINI_API_KEY) ve Pro aboneliğinizi kontrol edin.
+                    </p>
+                  </div>
+                )}
 
                 {/* Chat Mesajları */}
                 {messages.length > 0 ? (

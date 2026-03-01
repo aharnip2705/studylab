@@ -1,9 +1,18 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { streamText } from "ai";
+import { streamText, createDataStreamResponse, formatDataStreamPart } from "ai";
 import { filterSubjectDetailsByField } from "@/lib/exam-config";
 import type { StudyField } from "@/lib/study-field";
+
+function streamErrorResponse(message: string, status: number) {
+  return createDataStreamResponse({
+    status,
+    execute: (writer) => {
+      writer.write(formatDataStreamPart("error", message));
+    },
+  });
+}
 
 interface ExamInput {
   name: string;
@@ -21,7 +30,7 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return new Response(JSON.stringify({ error: "Oturum açmanız gerekiyor" }), { status: 401 });
+      return streamErrorResponse("Oturum açmanız gerekiyor", 401);
     }
 
     let isAdmin = false;
@@ -38,12 +47,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (!isAdmin && !["pro", "pro_trial"].includes(planType)) {
-      return new Response(JSON.stringify({ error: "Pro abonelik gerekli" }), { status: 403 });
+      return streamErrorResponse("Pro abonelik gerekli", 403);
     }
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "AI servisi yapılandırılmamış" }), { status: 500 });
+      return streamErrorResponse("AI servisi yapılandırılmamış. Vercel'de GEMINI_API_KEY tanımlayın.", 500);
     }
 
     const body = await req.json();
@@ -114,9 +123,26 @@ Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject değerleri: T
       temperature: isPlanRequest ? 0.2 : 0.8,
     });
 
-    return result.toDataStreamResponse();
+    function getErrorMessage(err: unknown): string {
+      if (err == null) return "Beklenmeyen bir hata oluştu.";
+      if (typeof err === "string") return err;
+      if (err instanceof Error) {
+        const msg = err.message?.toLowerCase() ?? "";
+        if (msg.includes("api") || msg.includes("key") || msg.includes("401") || msg.includes("403"))
+          return "AI servisi yapılandırılmamış veya API anahtarı geçersiz.";
+        if (msg.includes("quota") || msg.includes("limit")) return "Kota aşıldı. Lütfen daha sonra tekrar deneyin.";
+        if (msg.includes("pro abonelik") || msg.includes("oturum")) return err.message;
+        return err.message || "AI yanıt verirken bir hata oluştu.";
+      }
+      return "AI yanıt verirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
+    }
+
+    return result.toDataStreamResponse({ getErrorMessage });
   } catch (err) {
     console.error("[/api/chat] error:", err);
-    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), { status: 500 });
+    return streamErrorResponse(
+      err instanceof Error ? err.message : "Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.",
+      500
+    );
   }
 }
