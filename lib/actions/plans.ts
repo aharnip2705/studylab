@@ -280,6 +280,12 @@ export async function deleteUserResource(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Oturum açmanız gerekiyor" };
 
+  // plan_tasks FK: önce ilgili görevlerde user_resource_id'yi null yap
+  await supabase
+    .from("plan_tasks")
+    .update({ user_resource_id: null })
+    .eq("user_resource_id", id);
+
   const { error } = await supabase
     .from("user_resources")
     .delete()
@@ -288,5 +294,6 @@ export async function deleteUserResource(id: string) {
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard/gorev-ekle");
+  revalidatePath("/dashboard");
   return { success: true };
 }

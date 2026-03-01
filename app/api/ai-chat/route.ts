@@ -123,8 +123,9 @@ Kurallar: Haftanın 7 günü (Pazartesi-Pazar). Her günde 2-4 görev. subject: 
       parts: [{ text: message.trim() }],
     });
 
+    const model = process.env.GEMINI_MODEL || "gemini-1.5-flash";
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

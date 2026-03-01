@@ -36,14 +36,21 @@ export function ProfileAndFieldForm({ fullName, email }: ProfileAndFieldFormProp
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!studyField) return;
+    const tytNum = tytTarget !== "" ? parseFloat(tytTarget) : null;
+    const aytNum = aytTarget !== "" ? parseFloat(aytTarget) : null;
+    if (tytNum !== null && (tytNum <= 0 || tytNum > 120)) {
+      setMessage({ type: "error", text: "TYT hedefi 0-120 arası olmalı." });
+      return;
+    }
+    if (aytNum !== null && (aytNum <= 0 || aytNum > 80)) {
+      setMessage({ type: "error", text: "AYT hedefi 0-80 arası olmalı." });
+      return;
+    }
     setSaving(true);
     setMessage(null);
     const [r1, r2] = await Promise.all([
       updateStudyField(studyField as StudyField),
-      updateTargetNets(
-        tytTarget !== "" ? parseFloat(tytTarget) : null,
-        aytTarget !== "" ? parseFloat(aytTarget) : null
-      ),
+      updateTargetNets(tytNum, aytNum),
     ]);
     setSaving(false);
     if (r1.error || r2.error) {
@@ -105,29 +112,39 @@ export function ProfileAndFieldForm({ fullName, email }: ProfileAndFieldFormProp
             <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">TYT Net Hedefi</label>
             <input
               type="number"
-              min={0}
+              min={0.25}
               max={120}
               step={0.25}
               value={tytTarget}
               onChange={(e) => setTytTarget(e.target.value)}
+              onBlur={() => {
+                if (tytTarget === "" || parseFloat(tytTarget) === 0 || tytTarget === "0") setTytTarget("");
+                const n = parseFloat(tytTarget);
+                if (!Number.isNaN(n) && n > 120) setTytTarget("120");
+              }}
               placeholder="örn: 100"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
             />
-            <p className="mt-1 text-xs text-slate-500">Maks 120</p>
+            <p className="mt-1 text-xs text-slate-500">Maks 120 (0 girilemez)</p>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">AYT Net Hedefi</label>
             <input
               type="number"
-              min={0}
-              max={160}
+              min={0.25}
+              max={80}
               step={0.25}
               value={aytTarget}
               onChange={(e) => setAytTarget(e.target.value)}
-              placeholder="örn: 100"
+              onBlur={() => {
+                if (aytTarget === "" || parseFloat(aytTarget) === 0 || aytTarget === "0") setAytTarget("");
+                const n = parseFloat(aytTarget);
+                if (!Number.isNaN(n) && n > 80) setAytTarget("80");
+              }}
+              placeholder="örn: 60"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
             />
-            <p className="mt-1 text-xs text-slate-500">Maks 160</p>
+            <p className="mt-1 text-xs text-slate-500">Maks 80 (0 girilemez)</p>
           </div>
         </div>
       </div>

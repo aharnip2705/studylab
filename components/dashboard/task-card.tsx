@@ -71,7 +71,7 @@ export function TaskCard({
         type="button"
         onClick={() => setShowModal(true)}
         className={cn(
-          "animate-item-in flex w-full gap-3 rounded-lg border-l-4 px-3 py-2 text-left transition-all duration-150 hover:shadow-md min-w-0 break-words",
+          "task-card animate-item-in flex w-full gap-3 rounded-lg border-l-4 px-3 py-2 text-left transition-all duration-150 hover:shadow-md min-w-0 break-words",
           statusColors[status]
         )}
       >

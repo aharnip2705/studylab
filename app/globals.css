@@ -61,6 +61,81 @@ body {
   background: transparent !important;
 }
 
+/* Koyu arka plan: kartlar, header, sidebar uyumu */
+html[data-bg-dark="true"] .dashboard-main-bg .task-card {
+  --tw-bg-opacity: 0.12;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+html[data-bg-dark="true"] .dashboard-main-bg .task-card .text-slate-500,
+html[data-bg-dark="true"] .dashboard-main-bg .task-card .text-slate-600 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg .task-card .text-slate-400 {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg .task-card .text-slate-900,
+html[data-bg-dark="true"] .dashboard-main-bg .task-card .dark\:text-white {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg .task-card .border-l-green-500 { border-left-color: rgba(34, 197, 94, 0.8) !important; }
+html[data-bg-dark="true"] .dashboard-main-bg .task-card .border-l-amber-500 { border-left-color: rgba(245, 158, 11, 0.8) !important; }
+html[data-bg-dark="true"] .dashboard-main-bg .task-card .border-l-red-500 { border-left-color: rgba(239, 68, 68, 0.8) !important; }
+html[data-bg-dark="true"] .dashboard-main-bg .task-card [class*="bg-white/60"],
+html[data-bg-dark="true"] .dashboard-main-bg .task-card [class*="dark:bg-slate-700"] {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+html[data-bg-dark="true"] .dashboard-main-bg header {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg header .text-slate-600,
+html[data-bg-dark="true"] .dashboard-main-bg header .text-slate-500 {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+html[data-bg-dark="true"] .dashboard-main-bg aside {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg aside a,
+html[data-bg-dark="true"] .dashboard-main-bg aside .text-slate-700,
+html[data-bg-dark="true"] .dashboard-main-bg aside .text-slate-300 {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Haftalık plan gün sütunları */
+html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll > div > div {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll .text-slate-900,
+html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll .dark\:text-white {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll .text-slate-500,
+html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll .text-slate-400 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll .border-indigo-500 {
+  border-color: rgba(129, 140, 248, 0.7) !important;
+  background: rgba(99, 102, 241, 0.2) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll .text-indigo-600,
+html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll .dark\:text-indigo-400 {
+  color: rgba(165, 180, 252, 1) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main .text-slate-900,
+html[data-bg-dark="true"] .dashboard-main-bg main .text-slate-800 {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main .text-slate-600,
+html[data-bg-dark="true"] .dashboard-main-bg main .text-slate-500 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
 /* ─── Apple-style UI Animasyonları ─── */
 
 /* Overlay: siyah fon yavaşça belirir */
