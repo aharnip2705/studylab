@@ -380,7 +380,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                       {error.message || "Bir hata oluştu. Lütfen tekrar deneyin."}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
-                      API anahtarınızı (Vercel: GEMINI_API_KEY) ve Pro aboneliğinizi kontrol edin.
+                      API anahtarınızı (Vercel: GROQ_API_KEY) ve Pro aboneliğinizi kontrol edin.
                     </p>
                   </div>
                 )}

@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ insight: null });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "AI servisi yapılandırılmamış" },
+        { error: "AI servisi yapılandırılmamış. Vercel'de GROQ_API_KEY tanımlayın." },
         { status: 500 }
       );
     }
@@ -85,43 +85,44 @@ ${studyField ? `Öğrencinin alanı: ${studyField}` : ""}
 Sonuçlar (yeniden eskiye):
 ${examLines}
 
-Son 5 deneme ortalaması: ${avgNet.toFixed(1)} net
+Son ${exams.length} deneme ortalaması: ${avgNet.toFixed(1)} net
 
 ${
   (() => {
-        const fd = filterSubjectDetailsByField(exams[0]?.subject_details ?? null, exams[0]?.type?.toLowerCase() ?? "tyt", studyField as StudyField | null);
-        return fd && Object.keys(fd).length > 0;
-      })()
+    const fd = filterSubjectDetailsByField(exams[0]?.subject_details ?? null, exams[0]?.type?.toLowerCase() ?? "tyt", studyField as StudyField | null);
+    return fd && Object.keys(fd).length > 0;
+  })()
     ? "Ders detayları girilmiş - hangi derste odaklanması gerektiğini belirt."
     : "Ders detayı girilmemiş - genel net/süre dengesini değerlendir."
 }
 
 ÖNEMLİ: 2 cümleyi GEÇME. Motive edici ama gerçekçi ol. Kısa ve öz yaz. Türkçe yaz.`;
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            maxOutputTokens: 150,
-            temperature: 0.7,
-          },
-        }),
-      }
-    );
+    const modelName = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 
-    const geminiData = await geminiRes.json();
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 150,
+        temperature: 0.7,
+      }),
+    });
 
-    if (!geminiRes.ok) {
-      const errMsg = (geminiData as { error?: { message?: string } })?.error?.message ?? "Gemini API hatası";
+    const groqData = await groqRes.json();
+
+    if (!groqRes.ok) {
+      const errMsg = (groqData as { error?: { message?: string } })?.error?.message ?? "Groq API hatası";
       return NextResponse.json({ insight: null, error: errMsg }, { status: 502 });
     }
 
     const text =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
+      (groqData as { choices?: { message?: { content?: string } }[] })?.choices?.[0]?.message?.content?.trim() ?? null;
 
     return NextResponse.json({ insight: text });
   } catch (e) {

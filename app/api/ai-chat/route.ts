@@ -48,10 +48,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Mesaj gerekli" }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "AI servisi yapılandırılmamış" },
+        { error: "AI servisi yapılandırılmamış. Vercel'de GROQ_API_KEY tanımlayın." },
         { status: 500 }
       );
     }
@@ -101,53 +101,41 @@ Kurallar: Haftanın 7 günü (Pazartesi-Pazar). Her günde 2-4 görev. subject: 
       : `Sen sıcak, samimi ve insan gibi konuşan bir YKS hazırlık koçusun.${systemContext}
 Öğrenciyle arkadaş gibi sohbet et. Robot gibi, kuru ve yapay cevaplar verme. Bazen kısa sorular sor, empati göster, motive et. Türkçe yaz. Cümleleri doğal tut, "Şunu yapmalısın" gibi emir kipli ifadelerden kaçın. "Bence", "Senin için", "Şöyle düşünüyorum" gibi kişisel ifadeler kullan. Gerektiğinde hafif mizah kat. Maksimum 4-5 cümle ama samimi olsun.`;
 
-    const contents: { role: string; parts: { text: string }[] }[] = [
-      {
-        role: "user",
-        parts: [{ text: systemPrompt }],
-      },
-      {
-        role: "model",
-        parts: [{ text: isPlanRequest ? "Tamam, programı JSON formatında hazırlıyorum." : "Merhaba! Nasılsın? Deneme sonuçların ve hedeflerinle ilgili konuşalım, neye ihtiyacın var?" }],
-      },
+    const modelName = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
+
+    // Groq OpenAI uyumlu API kullanımı
+    const groqMessages = [
+      { role: "system", content: systemPrompt },
+      ...prevMessages.slice(-12).map((m) => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.content,
+      })),
+      { role: "user", content: message.trim() },
     ];
 
-    for (const m of prevMessages.slice(-12)) {
-      contents.push({
-        role: m.role === "user" ? "user" : "model",
-        parts: [{ text: m.content }],
-      });
-    }
-    contents.push({
-      role: "user",
-      parts: [{ text: message.trim() }],
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages: groqMessages,
+        max_tokens: isPlanRequest ? 2000 : 500,
+        temperature: isPlanRequest ? 0.3 : 0.8,
+      }),
     });
 
-    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp";
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            maxOutputTokens: isPlanRequest ? 2000 : 500,
-            temperature: isPlanRequest ? 0.3 : 0.8,
-          },
-        }),
-      }
-    );
+    const groqData = await groqRes.json();
 
-    const geminiData = await geminiRes.json();
-
-    if (!geminiRes.ok) {
-      const errMsg = (geminiData as { error?: { message?: string } })?.error?.message ?? "Gemini API hatası";
+    if (!groqRes.ok) {
+      const errMsg = (groqData as { error?: { message?: string } })?.error?.message ?? "Groq API hatası";
       return NextResponse.json({ reply: null, error: errMsg }, { status: 502 });
     }
 
-    let text =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
+    let text: string | null =
+      (groqData as { choices?: { message?: { content?: string } }[] })?.choices?.[0]?.message?.content?.trim() ?? null;
 
     if (isPlanRequest && text) {
       let planData: { day: string; tasks: { subject: string; duration_minutes: number; description: string }[] }[] | null = null;
@@ -211,7 +199,7 @@ Kurallar: Haftanın 7 günü (Pazartesi-Pazar). Her günde 2-4 görev. subject: 
       }
 
       return NextResponse.json({
-        reply: "Program formatı tanınamadı. Lütfen tekrar deneyin veya 'Haftalık program hazırla' diye yeniden yazın. Daha kısa ve net bir talep de işe yarayabilir.",
+        reply: "Program formatı tanınamadı. Lütfen tekrar deneyin veya 'Haftalık program hazırla' diye yeniden yazın.",
       });
     }
 

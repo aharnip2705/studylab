@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, createDataStreamResponse, formatDataStreamPart } from "ai";
 import { filterSubjectDetailsByField } from "@/lib/exam-config";
 import type { StudyField } from "@/lib/study-field";
@@ -50,9 +50,9 @@ export async function POST(req: NextRequest) {
       return streamErrorResponse("Pro abonelik gerekli", 403);
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      return streamErrorResponse("AI servisi yapılandırılmamış. Vercel'de GEMINI_API_KEY tanımlayın.", 500);
+      return streamErrorResponse("AI servisi yapılandırılmamış. Vercel'de GROQ_API_KEY tanımlayın.", 500);
     }
 
     const body = await req.json();
@@ -109,11 +109,14 @@ Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject değerleri: T
 
     const chatSystemPrompt = `Sen StudyLab adlı platformun uzman YKS, LGS ve KPSS eğitim koçusun. Adın AI Mentör. Öğrencilerin deneme netlerini analiz eder, onlara stratejik, motive edici ve tamamen Türk eğitim sistemine (TYT/AYT/KPSS) uygun ders çalışma programları hazırlarsın. Yanıtların kısa, net, modern ve madde imli olmalı.${contextStr}`;
 
-    const google = createGoogleGenerativeAI({ apiKey });
-    const modelName = (process.env.GEMINI_MODEL as string | undefined) ?? "gemini-1.5-flash";
+    const groq = createOpenAI({
+      apiKey,
+      baseURL: "https://api.groq.com/openai/v1",
+    });
+    const modelName = (process.env.GROQ_MODEL as string | undefined) ?? "llama-3.3-70b-versatile";
 
     const result = streamText({
-      model: google(modelName),
+      model: groq(modelName),
       system: isPlanRequest ? planSystemPrompt : chatSystemPrompt,
       messages: messages.slice(-20).map((m) => ({
         role: m.role === "user" ? ("user" as const) : ("assistant" as const),
@@ -124,17 +127,11 @@ Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject değerleri: T
     });
 
     function getErrorMessage(err: unknown): string {
-      if (err == null) return "Beklenmeyen bir hata oluştu.";
-      if (typeof err === "string") return err;
-      if (err instanceof Error) {
-        const msg = err.message?.toLowerCase() ?? "";
-        if (msg.includes("api") || msg.includes("key") || msg.includes("401") || msg.includes("403"))
-          return "AI servisi yapılandırılmamış veya API anahtarı geçersiz.";
-        if (msg.includes("quota") || msg.includes("limit")) return "Kota aşıldı. Lütfen daha sonra tekrar deneyin.";
-        if (msg.includes("pro abonelik") || msg.includes("oturum")) return err.message;
-        return err.message || "AI yanıt verirken bir hata oluştu.";
-      }
-      return "AI yanıt verirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
+      const raw = err instanceof Error ? err.message : String(err ?? "");
+      console.error("[/api/chat] Groq error:", raw);
+      if (!raw) return "Beklenmeyen bir hata oluştu.";
+      if (/quota|rate.?limit/i.test(raw)) return "Kota aşıldı. Lütfen daha sonra tekrar deneyin.";
+      return `AI hatası: ${raw}`;
     }
 
     return result.toDataStreamResponse({ getErrorMessage });
