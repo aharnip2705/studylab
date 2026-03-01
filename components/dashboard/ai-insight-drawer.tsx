@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useChat } from "@ai-sdk/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Brain, Sparkles, Send, Loader2, BookmarkCheck } from "lucide-react";
 import type { PracticeExam } from "@/lib/actions/practice-exams";
@@ -18,15 +19,9 @@ interface AiPlanDay {
   tasks: AiPlanTask[];
 }
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-  plan?: AiPlanDay[];
-}
+const AI_CHAT_STORAGE_KEY = "studylab-ai-chat-v2";
 
-const AI_CHAT_STORAGE_KEY = "studylab-ai-chat-messages";
-
-function loadStoredMessages(): ChatMessage[] {
+function loadStoredMessages(): { id: string; role: "user" | "assistant"; content: string }[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(AI_CHAT_STORAGE_KEY);
@@ -34,19 +29,26 @@ function loadStoredMessages(): ChatMessage[] {
     const parsed = JSON.parse(raw) as unknown[];
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
-      (m): m is ChatMessage =>
-        m !== null && typeof m === "object" && "role" in (m as object) && "content" in (m as object)
-    ) as ChatMessage[];
+      (m): m is { id: string; role: "user" | "assistant"; content: string } =>
+        m !== null &&
+        typeof m === "object" &&
+        "role" in (m as object) &&
+        "content" in (m as object)
+    );
   } catch {
     return [];
   }
 }
 
-function saveMessages(msgs: ChatMessage[]) {
-  if (typeof window === "undefined") return;
+function extractPlan(content: string): AiPlanDay[] | null {
   try {
-    localStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(msgs));
-  } catch { /* ignore */ }
+    const jsonMatch = content.match(/\{"plan"\s*:\s*\[[\s\S]+?\]\s*\}/);
+    if (!jsonMatch) return null;
+    const { plan } = JSON.parse(jsonMatch[0]) as { plan: AiPlanDay[] };
+    return Array.isArray(plan) ? plan : null;
+  } catch {
+    return null;
+  }
 }
 
 function ApplyPlanButton({ plan }: { plan: AiPlanDay[] }) {
@@ -58,19 +60,19 @@ function ApplyPlanButton({ plan }: { plan: AiPlanDay[] }) {
     setConfirming(false);
     try {
       const result = await applyAiPlan(plan);
-      if ("error" in result) { setStatus("error"); }
+      if ("error" in result) setStatus("error");
       else { setStatus("done"); revalidateKey("weeklyPlan"); }
     } catch { setStatus("error"); }
   }
 
   if (status === "done") {
-    return <p className="mt-2 text-xs font-medium text-emerald-400">Program haftalık plana eklendi!</p>;
+    return <p className="mt-2 text-xs font-medium text-emerald-400">✓ Haftalık plana eklendi!</p>;
   }
   return (
     <div className="mt-2 flex flex-col gap-2">
       {confirming ? (
         <>
-          <p className="text-xs text-amber-400">⚠ Mevcut görevler silinecektir. Onaylıyor musunuz?</p>
+          <p className="text-xs text-amber-400">⚠ Mevcut görevler silinecektir. Devam?</p>
           <div className="flex gap-2">
             <button type="button" onClick={handleApply} disabled={status === "loading"}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50">
@@ -83,18 +85,15 @@ function ApplyPlanButton({ plan }: { plan: AiPlanDay[] }) {
           </div>
         </>
       ) : (
-        <>
-          <p className="text-xs text-amber-400">⚠ Mevcut görevler silinecektir.</p>
-          <button type="button" onClick={() => setConfirming(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/30">
-            <BookmarkCheck className="h-3.5 w-3.5" />
-            Haftalık Plana Ekle
-          </button>
-        </>
+        <button type="button" onClick={() => setConfirming(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/30">
+          <BookmarkCheck className="h-3.5 w-3.5" />
+          Haftalık Plana Ekle
+        </button>
       )}
       {status === "error" && (
         <button type="button" onClick={handleApply} className="text-xs text-rose-400 hover:underline">
-          Hata – Tekrar Dene
+          Hata oluştu – tekrar dene
         </button>
       )}
     </div>
@@ -113,93 +112,63 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
   const [isOpen, setIsOpen] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadStoredMessages());
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
+  const insightFetchedRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const insightFetchedRef = useRef(false);
 
-  useEffect(() => { saveMessages(messages); }, [messages]);
+  const examBody = exams.slice(0, 5).map((e) => ({
+    name: e.exam_name,
+    type: e.exam_type,
+    correct: e.total_correct,
+    wrong: e.total_wrong,
+    time: e.total_time_minutes,
+    subject_details: e.subject_details,
+  }));
 
-  useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 300);
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [isOpen]);
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    setMessages,
+  } = useChat({
+    api: "/api/chat",
+    initialMessages: loadStoredMessages(),
+    body: { exams: examBody, studyField, tytTargetNet, aytTargetNet },
+    onFinish: () => {
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    },
+    onError: (err) => {
+      console.error("[AI chat]", err);
+    },
+  });
 
+  // localStorage'a kaydet
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      try {
+        localStorage.setItem(
+          AI_CHAT_STORAGE_KEY,
+          JSON.stringify(
+            messages.map((m) => ({ id: m.id, role: m.role, content: m.content }))
+          )
+        );
+      } catch { /* ignore */ }
     }
   }, [messages]);
 
-  const fetchInsight = useCallback(async () => {
-    if (!isPro || exams.length === 0 || insightFetchedRef.current) return;
-    insightFetchedRef.current = true;
-    setInsightLoading(true);
-    try {
-      const res = await fetch("/api/ai-insight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          exams: exams.slice(0, 5).map((e) => ({
-            name: e.exam_name, type: e.exam_type,
-            correct: e.total_correct, wrong: e.total_wrong,
-            time: e.total_time_minutes, subject_details: e.subject_details,
-          })),
-          studyField,
-        }),
-      });
-      const data = (await res.json()) as { insight?: string | null; error?: string };
-      if (res.ok) setInsight(data.insight ?? null);
-    } catch { /* ignore */ }
-    finally { setInsightLoading(false); }
-  }, [exams, isPro, studyField]);
-
+  // Drawer açılınca focus + scroll
   useEffect(() => {
-    if (isOpen && !insightFetchedRef.current) fetchInsight();
-  }, [isOpen, fetchInsight]);
-
-  const sendChatMessage = useCallback(async () => {
-    const text = chatInput.trim();
-    if (!text || chatLoading) return;
-    setChatInput("");
-    const userMsg: ChatMessage = { role: "user", content: text };
-    setMessages((m) => [...m, userMsg]);
-    setChatLoading(true);
-    try {
-      const res = await fetch("/api/ai-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          message: text,
-          messages,
-          exams: exams.slice(0, 5).map((e) => ({
-            name: e.exam_name, type: e.exam_type,
-            correct: e.total_correct, wrong: e.total_wrong,
-            time: e.total_time_minutes, subject_details: e.subject_details,
-          })),
-          studyField,
-          tytTargetNet,
-          aytTargetNet,
-        }),
-      });
-      const data = (await res.json()) as { reply?: string | null; error?: string; plan?: AiPlanDay[] };
-      const reply = data.reply ?? data.error ?? "Üzgünüm, yanıt oluşturamadım.";
-      setMessages((m) => [...m, { role: "assistant" as const, content: reply, plan: data.plan }]);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Bağlantı hatası.";
-      setMessages((m) => [...m, { role: "assistant" as const, content: msg }]);
-    } finally {
-      setChatLoading(false);
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 320);
     }
-  }, [chatInput, chatLoading, messages, exams, studyField, tytTargetNet, aytTargetNet]);
+  }, [isOpen]);
 
-  // Close on Escape
+  // Escape ile kapat
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") setIsOpen(false);
@@ -208,10 +177,36 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
     return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
+  // AI hızlı tavsiye (insight card)
+  useEffect(() => {
+    if (!isOpen || insightFetchedRef.current || !isPro || exams.length === 0) return;
+    insightFetchedRef.current = true;
+    setInsightLoading(true);
+    fetch("/api/ai-insight", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ exams: examBody, studyField }),
+    })
+      .then((r) => r.json())
+      .then((data: { insight?: string; error?: string }) => setInsight(data.insight ?? null))
+      .catch(() => {})
+      .finally(() => setInsightLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  function clearHistory() {
+    setMessages([]);
+    try { localStorage.removeItem(AI_CHAT_STORAGE_KEY); } catch { /* ignore */ }
+  }
+
+  function fillInput(text: string) {
+    handleInputChange({ target: { value: text } } as React.ChangeEvent<HTMLInputElement>);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }
+
   if (!isPro) return null;
 
-  // Latest net data for status cards
-  const latestExam = exams[0] ?? null;
   const latestTytExam = exams.find((e) => e.exam_type === "tyt") ?? null;
   const latestAytExam = exams.find((e) => e.exam_type === "ayt") ?? null;
 
@@ -222,9 +217,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
         type="button"
         onClick={() => setIsOpen(true)}
         className="group relative inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
-        style={{
-          background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)",
-        }}
+        style={{ background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)" }}
       >
         <Sparkles className="h-4 w-4" />
         AI Koç
@@ -250,22 +243,27 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col"
-              style={{ background: "rgba(30, 31, 41, 0.95)", backdropFilter: "blur(20px)" }}
+              style={{ background: "rgba(18, 18, 28, 0.97)", backdropFilter: "blur(20px)" }}
             >
               {/* Header */}
               <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)" }}>
+                  <div
+                    className="flex h-9 w-9 items-center justify-center rounded-xl"
+                    style={{ background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)" }}
+                  >
                     <Brain className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="font-bold text-white">StudyLab Insight</h2>
-                    <p className="text-xs text-slate-400">AI Koçunuz</p>
+                    <h2 className="font-bold text-white">AI Mentör</h2>
+                    <p className="text-xs text-slate-400">StudyLab Koçunuz</p>
                   </div>
                 </div>
-                <button type="button" onClick={() => setIsOpen(false)}
-                  className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                >
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -286,11 +284,24 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                           <div className="mt-2">
                             <div className="mb-1 flex justify-between text-[10px] text-slate-400">
                               <span>Hedef: {tytTargetNet}</span>
-                              <span>{Math.min(100, Math.round(((latestTytExam.total_correct - latestTytExam.total_wrong * 0.25) / tytTargetNet) * 100))}%</span>
+                              <span>
+                                {Math.min(
+                                  100,
+                                  Math.round(
+                                    ((latestTytExam.total_correct - latestTytExam.total_wrong * 0.25) /
+                                      tytTargetNet) *
+                                      100
+                                  )
+                                )}%
+                              </span>
                             </div>
                             <div className="h-1.5 w-full rounded-full bg-white/10">
-                              <div className="h-1.5 rounded-full bg-indigo-500 transition-all"
-                                style={{ width: `${Math.min(100, ((latestTytExam.total_correct - latestTytExam.total_wrong * 0.25) / tytTargetNet) * 100)}%` }} />
+                              <div
+                                className="h-1.5 rounded-full bg-indigo-500 transition-all"
+                                style={{
+                                  width: `${Math.min(100, ((latestTytExam.total_correct - latestTytExam.total_wrong * 0.25) / tytTargetNet) * 100)}%`,
+                                }}
+                              />
                             </div>
                           </div>
                         )}
@@ -307,11 +318,24 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                           <div className="mt-2">
                             <div className="mb-1 flex justify-between text-[10px] text-slate-400">
                               <span>Hedef: {aytTargetNet}</span>
-                              <span>{Math.min(100, Math.round(((latestAytExam.total_correct - latestAytExam.total_wrong * 0.25) / aytTargetNet) * 100))}%</span>
+                              <span>
+                                {Math.min(
+                                  100,
+                                  Math.round(
+                                    ((latestAytExam.total_correct - latestAytExam.total_wrong * 0.25) /
+                                      aytTargetNet) *
+                                      100
+                                  )
+                                )}%
+                              </span>
                             </div>
                             <div className="h-1.5 w-full rounded-full bg-white/10">
-                              <div className="h-1.5 rounded-full bg-purple-500 transition-all"
-                                style={{ width: `${Math.min(100, ((latestAytExam.total_correct - latestAytExam.total_wrong * 0.25) / aytTargetNet) * 100)}%` }} />
+                              <div
+                                className="h-1.5 rounded-full bg-purple-500 transition-all"
+                                style={{
+                                  width: `${Math.min(100, ((latestAytExam.total_correct - latestAytExam.total_wrong * 0.25) / aytTargetNet) * 100)}%`,
+                                }}
+                              />
                             </div>
                           </div>
                         )}
@@ -324,13 +348,19 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                 <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-purple-400" />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-purple-400">AI Tavsiye</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-purple-400">
+                      AI Tavsiye
+                    </span>
                   </div>
                   {insightLoading ? (
                     <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-400" />
-                      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-400 [animation-delay:150ms]" />
-                      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-400 [animation-delay:300ms]" />
+                      {[0, 150, 300].map((d) => (
+                        <div
+                          key={d}
+                          className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-400"
+                          style={{ animationDelay: `${d}ms` }}
+                        />
+                      ))}
                       <span className="text-xs text-slate-500">Analiz ediliyor...</span>
                     </div>
                   ) : insight ? (
@@ -338,45 +368,72 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                   ) : exams.length === 0 ? (
                     <p className="text-sm text-slate-500">Deneme sonucu ekleyince analiz başlar.</p>
                   ) : (
-                    <p className="text-sm text-slate-500">Analiz yüklenemedi.</p>
+                    <p className="text-sm text-slate-500">Analiz hazırlanamadı.</p>
                   )}
                 </div>
 
-                {/* Chat Messages */}
-                {messages.length > 0 && (
+                {/* Chat Mesajları */}
+                {messages.length > 0 ? (
                   <div className="space-y-3">
-                    {messages.map((msg, i) => (
-                      <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                          msg.role === "user"
-                            ? "rounded-br-sm bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
-                            : "rounded-bl-sm bg-white/10 text-slate-200"
-                        }`}>
-                          {msg.content}
-                          {msg.plan && msg.plan.length > 0 && (
-                            <ApplyPlanButton plan={msg.plan} />
+                    {messages.map((msg) => {
+                      const plan = msg.role === "assistant" ? extractPlan(msg.content) : null;
+                      const displayContent = plan
+                        ? "✅ Haftalık programın hazır! Aşağıdan plana ekleyebilirsin."
+                        : msg.content;
+
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                        >
+                          {msg.role === "assistant" && (
+                            <div className="mr-2 mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
+                              <Brain className="h-3.5 w-3.5 text-white" />
+                            </div>
                           )}
+                          <div
+                            className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                              msg.role === "user"
+                                ? "rounded-br-sm bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
+                                : "rounded-bl-sm bg-white/10 text-slate-200"
+                            }`}
+                          >
+                            {displayContent}
+                            {plan && plan.length > 0 && <ApplyPlanButton plan={plan} />}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {chatLoading && (
+                      );
+                    })}
+
+                    {/* Streaming göstergesi */}
+                    {isLoading && (
                       <div className="flex justify-start">
+                        <div className="mr-2 mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
+                          <Brain className="h-3.5 w-3.5 text-white" />
+                        </div>
                         <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm bg-white/10 px-4 py-3">
                           <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-                          <span className="text-xs text-slate-400">Yanıt yazılıyor...</span>
+                          <span className="text-xs text-slate-400">Yazıyor...</span>
                         </div>
                       </div>
                     )}
                     <div ref={messagesEndRef} />
                   </div>
-                )}
-
-                {messages.length === 0 && !chatLoading && (
+                ) : (
+                  /* Hızlı Sorular */
                   <div className="mt-2 space-y-2">
                     <p className="text-xs text-slate-500">Hızlı sorular:</p>
-                    {["Zayıf derslerim hangileri?", "Bu hafta ne çalışmalıyım?", "Haftalık program hazırla"].map((q) => (
-                      <button key={q} type="button" onClick={() => { setChatInput(q); setTimeout(() => inputRef.current?.focus(), 100); }}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs text-slate-300 transition-colors hover:border-purple-500/30 hover:bg-purple-500/10 hover:text-purple-300">
+                    {[
+                      "Zayıf derslerim hangileri?",
+                      "Bu hafta ne çalışmalıyım?",
+                      "Haftalık program hazırla",
+                    ].map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => fillInput(q)}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs text-slate-300 transition-colors hover:border-purple-500/30 hover:bg-purple-500/10 hover:text-purple-300"
+                      >
                         {q}
                       </button>
                     ))}
@@ -387,28 +444,35 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
               {/* Input */}
               <div className="shrink-0 border-t border-white/10 px-4 py-3">
                 {messages.length > 0 && (
-                  <button type="button" onClick={() => setMessages([])}
-                    className="mb-2 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                  <button
+                    type="button"
+                    onClick={clearHistory}
+                    className="mb-2 text-xs text-slate-500 transition-colors hover:text-slate-300"
+                  >
                     Geçmişi temizle
                   </button>
                 )}
-                <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 transition-colors focus-within:border-purple-500/50">
+                <form
+                  onSubmit={handleSubmit}
+                  className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 transition-colors focus-within:border-purple-500/50"
+                >
                   <input
                     ref={inputRef}
                     type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendChatMessage()}
+                    value={input}
+                    onChange={handleInputChange}
                     placeholder="Bir şey sor..."
-                    disabled={chatLoading}
+                    disabled={isLoading}
                     className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
                   />
-                  <button type="button" onClick={sendChatMessage}
-                    disabled={!chatInput.trim() || chatLoading}
-                    className="shrink-0 rounded-xl p-1.5 text-purple-400 transition-colors hover:bg-purple-500/20 disabled:opacity-40">
+                  <button
+                    type="submit"
+                    disabled={!input.trim() || isLoading}
+                    className="shrink-0 rounded-xl p-1.5 text-purple-400 transition-colors hover:bg-purple-500/20 disabled:opacity-40"
+                  >
                     <Send className="h-4 w-4" />
                   </button>
-                </div>
+                </form>
               </div>
             </motion.div>
           </>
