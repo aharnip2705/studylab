@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Brain, Sparkles, Send, Loader2, Eye } from "lucide-react";
+import { X, Brain, Sparkles, Send, Loader2, Eye, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 import type { PracticeExam } from "@/lib/actions/practice-exams";
-import { revalidateKey } from "@/lib/swr/hooks";
+import { revalidateKey, useCoachData } from "@/lib/swr/hooks";
+import { updateCoachResources } from "@/lib/actions/profile";
 import { PlanPreviewModal } from "./plan-preview-modal";
 
 interface AiPlanTask {
@@ -99,13 +100,44 @@ interface AiInsightDrawerProps {
   aytTargetNet?: number | null;
 }
 
+type CoachResourceItem = { t: "r" | "u"; id: string; name: string };
+
 export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTargetNet }: AiInsightDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [showResources, setShowResources] = useState(false);
+  const [savingResources, setSavingResources] = useState(false);
   const insightFetchedRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: coachData, mutate: mutateCoach } = useCoachData();
+  const dersResources = coachData?.dersResources ?? [];
+  const denemeResources = coachData?.denemeResources ?? [];
+  const userResources = coachData?.userResources ?? [];
+  const coachResourceIds = coachData?.coachResourceIds ?? [];
+  const topicCompletions = coachData?.topicCompletions ?? [];
+
+  const allResources: CoachResourceItem[] = useMemo(() => {
+    const ders = dersResources.map((r: { id: string; name: string }) => ({ t: "r" as const, id: r.id, name: r.name ?? "" }));
+    const deneme = denemeResources.map((r: { id: string; name: string }) => ({ t: "r" as const, id: r.id, name: r.name ?? "" }));
+    const user = userResources.map((r: { id: string; name: string }) => ({ t: "u" as const, id: r.id, name: r.name ?? "" }));
+    return [...ders, ...deneme, ...user];
+  }, [dersResources, denemeResources, userResources]);
+
+  const selectedSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of coachResourceIds) {
+      if (c?.t && c?.id) s.add(`${c.t}:${c.id}`);
+    }
+    return s;
+  }, [coachResourceIds]);
+
+  const coachResourcesForApi: { t: string; id: string; name: string }[] = useMemo(
+    () => allResources.filter((r) => selectedSet.has(`${r.t}:${r.id}`)),
+    [allResources, selectedSet]
+  );
 
   const examBody = exams.slice(0, 5).map((e) => ({
     name: e.exam_name,
@@ -127,7 +159,14 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
   } = useChat({
     api: "/api/chat",
     initialMessages: loadStoredMessages(),
-    body: { exams: examBody, studyField, tytTargetNet, aytTargetNet },
+    body: {
+      exams: examBody,
+      studyField,
+      tytTargetNet,
+      aytTargetNet,
+      topicCompletions: topicCompletions.map((c) => ({ subject: c.subject, topic: c.topic, examType: c.examType })),
+      coachResources: coachResourcesForApi,
+    },
     onFinish: () => {
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     },
@@ -135,6 +174,17 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
       console.error("[AI chat]", err);
     },
   });
+
+  async function toggleResource(item: CoachResourceItem) {
+    const key = `${item.t}:${item.id}`;
+    const next: { t: "r" | "u"; id: string }[] = selectedSet.has(key)
+      ? (coachResourceIds as { t: "r" | "u"; id: string }[]).filter((c) => !(c.t === item.t && c.id === item.id))
+      : [...(coachResourceIds as { t: "r" | "u"; id: string }[]), { t: item.t, id: item.id }];
+    setSavingResources(true);
+    const res = await updateCoachResources(next);
+    setSavingResources(false);
+    if (!res.error) mutateCoach();
+  }
 
   // localStorage'a kaydet
   useEffect(() => {
@@ -336,6 +386,60 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                   </div>
                 )}
 
+                {/* Kaynaklarım - Koç için seçilen kaynaklar */}
+                <div className="mb-4 rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowResources(!showResources)}
+                    className="flex w-full items-center justify-between px-4 py-3 text-left"
+                  >
+                    <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-400">
+                      <BookOpen className="h-4 w-4" />
+                      Kaynaklarım
+                      {coachResourcesForApi.length > 0 && (
+                        <span className="rounded-full bg-purple-500/30 px-2 py-0.5 text-[10px]">
+                          {coachResourcesForApi.length} seçili
+                        </span>
+                      )}
+                    </span>
+                    {showResources ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
+                  </button>
+                  {showResources && (
+                    <div className="max-h-40 overflow-y-auto border-t border-white/10 px-4 py-3">
+                      <p className="mb-2 text-[11px] text-slate-500">
+                        Programa göre kullanacağın kitapları/denemeleri seç. Koç sadece bunlarla program hazırlar.
+                      </p>
+                      {allResources.length === 0 ? (
+                        <p className="text-xs text-slate-500">Henüz kaynak yok. Görev ekle sayfasından ekleyebilirsin.</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {allResources.map((item) => {
+                            const key = `${item.t}:${item.id}`;
+                            const checked = selectedSet.has(key);
+                            return (
+                              <label
+                                key={key}
+                                className={`flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-white/5 ${
+                                  checked ? "text-purple-300" : "text-slate-400"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleResource(item)}
+                                  disabled={savingResources}
+                                  className="rounded border-white/30 bg-transparent text-purple-500"
+                                />
+                                <span className="truncate">{item.name || "(İsimsiz)"}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* AI Tavsiye Card */}
                 <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="mb-2 flex items-center gap-2">
@@ -428,9 +532,9 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                   <div className="mt-2 space-y-2">
                     <p className="text-xs text-slate-500">Hızlı sorular:</p>
                     {[
-                      "Zayıf derslerim hangileri?",
-                      "Bu hafta ne çalışmalıyım?",
-                      "Haftalık program hazırla",
+                      "Zayıf derslerim hangileri, nasıl geliştiririm?",
+                      "Bu hafta hangi konulara odaklanmalıyım?",
+                      "Kaynaklarıma göre haftalık program hazırla",
                     ].map((q) => (
                       <button
                         key={q}

@@ -140,6 +140,72 @@ html[data-bg-dark="true"] .dashboard-main-bg main .text-slate-500 {
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
+/* Koyu arka plan: form kartları, Görev Ekle, Konu Takip, Ayarlar, Video Dersler - beyaz tema uyumu */
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="bg-white"],
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-2xl"][class*="border"][class*="bg-white"],
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="bg-slate-50"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main input[class*="rounded"],
+html[data-bg-dark="true"] .dashboard-main-bg main input[class*="border"],
+html[data-bg-dark="true"] .dashboard-main-bg main textarea[class*="rounded"],
+html[data-bg-dark="true"] .dashboard-main-bg main textarea[class*="border"] {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main input::placeholder,
+html[data-bg-dark="true"] .dashboard-main-bg main textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main label {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+/* Dropdown/select butonları */
+html[data-bg-dark="true"] .dashboard-main-bg main button[class*="bg-white"][class*="border"],
+html[data-bg-dark="true"] .dashboard-main-bg main [role="button"][class*="bg-white"] {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main .animate-dropdown-in {
+  background: rgba(30, 41, 59, 0.98) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+/* Gün butonları (Pazartesi, Salı) - border-slate-200 */
+html[data-bg-dark="true"] .dashboard-main-bg main button[class*="border-slate-200"]:not([class*="bg-indigo"]) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+/* Konu takip - tamamlanmamış konu butonları */
+html[data-bg-dark="true"] .dashboard-main-bg main button.bg-slate-50,
+html[data-bg-dark="true"] .dashboard-main-bg main button[class*="bg-slate-50"] {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+/* Progress bar arka plan */
+html[data-bg-dark="true"] .dashboard-main-bg main .bg-slate-200 {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+/* İptal / iptal tipi butonlar */
+html[data-bg-dark="true"] .dashboard-main-bg main button.bg-white:not([class*="bg-indigo"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-red"]) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+/* Admin panel amber kutusu, Link kartları */
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="bg-amber-50"],
+html[data-bg-dark="true"] .dashboard-main-bg main a.rounded-lg.border.bg-white {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="bg-amber-50"] .text-amber-800 {
+  color: rgba(253, 224, 71, 0.95) !important;
+}
+
 /* Açık/beyaz arka plan: metin kontrastı - okunaklı koyu yazı */
 html[data-bg-light="true"] .dashboard-main-bg main .text-slate-500,
 html[data-bg-light="true"] .dashboard-main-bg main .text-slate-600 {

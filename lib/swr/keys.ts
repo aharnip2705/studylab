@@ -7,4 +7,5 @@ export const SWR_KEYS = {
   gorevEkle: "swr:gorev-ekle",
   practiceExams: "swr:practice-exams",
   subscription: "swr:subscription",
+  coachData: "swr:coach-data",
 } as const;

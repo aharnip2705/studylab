@@ -12,17 +12,45 @@ export async function getProfile() {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("study_field, full_name, tyt_target_net, ayt_target_net")
+      .select("study_field, full_name, tyt_target_net, ayt_target_net, coach_resource_ids")
       .eq("id", user.id)
       .single();
 
     if (error) {
-      return { study_field: "esit_agirlik" as StudyField, full_name: null, tyt_target_net: null, ayt_target_net: null };
+      return { study_field: "esit_agirlik" as StudyField, full_name: null, tyt_target_net: null, ayt_target_net: null, coach_resource_ids: [] };
     }
-    return data;
+    return { ...data, coach_resource_ids: (data as { coach_resource_ids?: unknown })?.coach_resource_ids ?? [] };
   } catch {
-    return { study_field: "esit_agirlik" as StudyField, full_name: null, tyt_target_net: null, ayt_target_net: null };
+    return { study_field: "esit_agirlik" as StudyField, full_name: null, tyt_target_net: null, ayt_target_net: null, coach_resource_ids: [] };
   }
+}
+
+export async function updateCoachResources(ids: { t: "r" | "u"; id: string }[]) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Oturum açmanız gerekiyor" };
+
+  const payload: Record<string, unknown> = {
+    coach_resource_ids: ids,
+    updated_at: new Date().toISOString(),
+  };
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update(payload)
+      .eq("id", user.id);
+
+    if (error) return { error: error.message };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Kaydedilemedi";
+    if (/column.*coach_resource_ids/i.test(msg)) {
+      return { error: "Veritabanı güncellemesi gerekli. Migration 025: profiles tablosuna coach_resource_ids sütununu ekleyin." };
+    }
+    return { error: msg };
+  }
+  revalidatePath("/dashboard/istatistikler");
+  revalidatePath("/dashboard");
+  return { success: true };
 }
 
 export async function updateTargetNets(tytTargetNet: number | null, aytTargetNet: number | null) {

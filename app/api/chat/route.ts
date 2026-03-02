@@ -23,6 +23,87 @@ interface ExamInput {
   subject_details: Record<string, { correct: number; wrong: number }> | null;
 }
 
+interface TopicCompletion {
+  subject: string;
+  topic: string;
+  examType: string;
+}
+
+interface CoachResource {
+  t: "r" | "u";
+  id: string;
+  name?: string;
+}
+
+function buildContext(params: {
+  exams: ExamInput[];
+  studyField: string | null;
+  tytTargetNet: number | null;
+  aytTargetNet: number | null;
+  topicCompletions: TopicCompletion[];
+  coachResources: CoachResource[];
+}) {
+  const parts: string[] = [];
+
+  if (params.exams.length > 0) {
+    const lines = params.exams
+      .map((e, i) => {
+        const net = e.correct - e.wrong * 0.25;
+        const examType = e.type?.toLowerCase() as "tyt" | "ayt";
+        const config = getExamConfig(examType ?? "tyt", params.studyField as StudyField | null);
+        const subjectQs = config.subjectQuestions;
+        const filteredDetails = filterSubjectDetailsByField(
+          e.subject_details,
+          examType ?? "tyt",
+          params.studyField as StudyField | null
+        );
+        let line = `${i + 1}. ${e.name} (${e.type}) → ${net.toFixed(1)} net (${e.correct}D/${e.wrong}Y, ${e.time}dk)`;
+        if (filteredDetails && Object.keys(filteredDetails).length > 0) {
+          const details = Object.entries(filteredDetails)
+            .map(([s, d]) => {
+              const maxQ = subjectQs[s];
+              const subNet = d.correct - d.wrong * 0.25;
+              const pct = maxQ ? `%${Math.round((subNet / maxQ) * 100)}` : "";
+              return `${s}(${maxQ ?? "?"}soru): ${subNet.toFixed(1)}net ${pct}`;
+            })
+            .join(" | ");
+          line += `\n   [${details}]`;
+        }
+        return line;
+      })
+      .join("\n");
+    parts.push(`Deneme sonuçları:\n${lines}\n\nNOT: Zayıflığı net oranı (net/maxSoru) ile değerlendir.`);
+  }
+
+  if (params.topicCompletions.length > 0) {
+    const bySubject: Record<string, string[]> = {};
+    for (const c of params.topicCompletions) {
+      const key = `${c.subject} (${c.examType.toUpperCase()})`;
+      if (!bySubject[key]) bySubject[key] = [];
+      bySubject[key].push(c.topic);
+    }
+    const topicLines = Object.entries(bySubject)
+      .map(([subj, topics]) => `- ${subj}: ${topics.join(", ")}`)
+      .join("\n");
+    parts.push(`Tamamlanan konular (Konu Takip):\n${topicLines}\n\nBu konular BİTİRİLMİŞ. Programda tekrar önermek yerine sonraki konulara geç.`);
+  } else {
+    parts.push("Tamamlanan konu BİLGİSİ YOK. Kullanıcı Konu Takip sayfasından ilerlemesini işaretlememiş. Program istenirse deneme zayıflıklarından veya genel müfredat sırasından hareket et; konu bilgisi olmadığını belirt.");
+  }
+
+  if (params.coachResources.length > 0) {
+    const names = params.coachResources.map((r) => r.name ?? r.id).filter(Boolean);
+    parts.push(`Kullanıcının sahip olduğu kaynaklar (SADECE bunları programda kullan):\n${names.join("\n")}\n\nProgram hazırlarken SADECE bu listedeki kaynakları öner. Listede olmayan kitap/deneme önerme.`);
+  } else {
+    parts.push("Kullanıcı kaynak listesi EKLEMEMİŞ. Program hazırlarken genel kitap isimleri kullanabilirsin ama önce \"AI Koç içinde Kaynaklarım bölümünden sahip olduğun kitapları ekle, daha kişisel program hazırlayabilirim\" diye öner.");
+  }
+
+  if (params.studyField) parts.push(`Alan: ${params.studyField}`);
+  if (params.tytTargetNet) parts.push(`TYT hedef net: ${params.tytTargetNet}`);
+  if (params.aytTargetNet) parts.push(`AYT hedef net: ${params.aytTargetNet}`);
+
+  return parts.length > 0 ? `\n\n[Kullanıcı Verileri]\n${parts.join("\n\n")}` : "";
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -61,44 +142,18 @@ export async function POST(req: NextRequest) {
     const studyField = body.studyField as string | null;
     const tytTargetNet = body.tytTargetNet as number | null;
     const aytTargetNet = body.aytTargetNet as number | null;
+    const topicCompletions = (body.topicCompletions ?? []) as TopicCompletion[];
+    const coachResources = (body.coachResources ?? []) as CoachResource[];
 
-    // Bağlam oluştur (alan dışı dersler filtrelenir)
-    const contextParts: string[] = [];
-    if (exams.length > 0) {
-      const lines = exams
-        .map((e, i) => {
-          const net = e.correct - e.wrong * 0.25;
-          const examType = e.type?.toLowerCase() as "tyt" | "ayt";
-          const config = getExamConfig(examType ?? "tyt", studyField as StudyField | null);
-          const subjectQs = config.subjectQuestions;
-          const filteredDetails = filterSubjectDetailsByField(
-            e.subject_details,
-            examType ?? "tyt",
-            studyField as StudyField | null
-          );
-          let line = `${i + 1}. ${e.name} (${e.type}) → ${net.toFixed(1)} net (${e.correct}D/${e.wrong}Y, ${e.time}dk)`;
-          if (filteredDetails && Object.keys(filteredDetails).length > 0) {
-            const details = Object.entries(filteredDetails)
-              .map(([s, d]) => {
-                const maxQ = subjectQs[s];
-                const subNet = d.correct - d.wrong * 0.25;
-                const pct = maxQ ? `%${Math.round((subNet / maxQ) * 100)}` : "";
-                return `${s}(${maxQ ?? "?"}soru): ${subNet.toFixed(1)}net ${pct}`;
-              })
-              .join(" | ");
-            line += `\n   [${details}]`;
-          }
-          return line;
-        })
-        .join("\n");
-      contextParts.push(`Deneme sonuçları:\n${lines}\n\nNOT: Parantez içindeki soru sayısı o dersin sınavdaki toplam sorusudur. Zayıflığı net oranı (net/maxSoru) ile değerlendir, mutlak net sayısıyla değil.`);
-    }
-    if (studyField) contextParts.push(`Alan: ${studyField}`);
-    if (tytTargetNet) contextParts.push(`TYT hedef net: ${tytTargetNet}`);
-    if (aytTargetNet) contextParts.push(`AYT hedef net: ${aytTargetNet}`);
-    const contextStr = contextParts.length > 0 ? `\n\n[Bağlam]\n${contextParts.join("\n")}` : "";
+    const contextStr = buildContext({
+      exams,
+      studyField,
+      tytTargetNet,
+      aytTargetNet,
+      topicCompletions,
+      coachResources,
+    });
 
-    // Son kullanıcı mesajına göre plan isteği tespiti
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     const lastUserText = lastUserMsg?.content ?? "";
     const isPlanRequest =
@@ -106,16 +161,28 @@ export async function POST(req: NextRequest) {
       /^(hadi\s+)?(oluştur|hazırla|yap)\s*(bir)?\s*(program|plan)/i.test(lastUserText.trim()) ||
       /^(evet|tamam|e|olur)\s*$/i.test(lastUserText.trim());
 
-    const planSystemPrompt = `Sen StudyLab'ın YKS koç yapay zekasısın.${contextStr}
+    const baseInstructions = `Sen StudyLab'ın uzman YKS hazırlık koçusun. Adın AI Mentör.
+- Kullanıcıya "sen" diye hitap et, "öğrenci" deme.
+- Türk eğitim sistemine (TYT/AYT, MEB müfredatı) göre tavsiye ver.
+- Konuşma geçmişini MUTLAKA oku. Daha önce verdiğin önerileri TEKRARLAMA. Aynı soru tekrar gelirse farklı açı, derinlemesine analiz veya yeni perspektif sun.
+- Bilgi yoksa uydurma. "Bu bilgiyi sistemde göremiyorum, Konu Takip / Kaynaklarım'dan ekleyebilirsin" de.${contextStr}`;
 
-Kullanıcı haftalık çalışma programı istiyor. Verilerini analiz et. Zayıflığı net oranına göre belirle (net/maxSoru), mutlak net sayısına göre değil. Düşük oranlı derslere daha fazla süre ayır.
+    const planSystemPrompt = `${baseInstructions}
 
-SADECE aşağıdaki JSON formatını döndür. Başka HİÇBİR metin, açıklama, markdown, \`\`\`json etiketi EKLEME:
-{"plan":[{"day":"Pazartesi","tasks":[{"subject":"Türkçe","duration_minutes":90,"description":"Fiilimsiler konu tekrarı"}]},{"day":"Salı","tasks":[]},{"day":"Çarşamba","tasks":[]},{"day":"Perşembe","tasks":[]},{"day":"Cuma","tasks":[]},{"day":"Cumartesi","tasks":[]},{"day":"Pazar","tasks":[]}]}
+Kullanıcı haftalık program istiyor. ÖNCE verilerini dikkatle analiz et:
+1. Tamamlanan konular varsa onları ATLA, sonraki konulara geç.
+2. Kaynak listesi varsa SADECE o kaynakları kullan; yoksa genel öner + kaynak eklemesini söyle.
+3. Deneme zayıflıklarını net oranına göre belirle.
+4. Programı DETAYLI ve UYGULANABİLİR yap; her görevde konu adı ve süre belirt.
 
-Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject değerleri: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe. duration_minutes: 60-120 tam sayı. Sadece JSON döndür, başka hiçbir şey yazma.`;
+SADECE aşağıdaki JSON formatını döndür. Başka HİÇBİR metin, \`\`\`json EKLEME:
+{"plan":[{"day":"Pazartesi","tasks":[{"subject":"Türkçe","duration_minutes":90,"description":"Paragraf - anlam çıkarımı soruları"}]},{"day":"Salı","tasks":[]},{"day":"Çarşamba","tasks":[]},{"day":"Perşembe","tasks":[]},{"day":"Cuma","tasks":[]},{"day":"Cumartesi","tasks":[]},{"day":"Pazar","tasks":[]}]}
 
-    const chatSystemPrompt = `Sen StudyLab adlı platformun uzman YKS koçusun. Adın AI Mentör. Kullanıcıyla doğrudan "sen" diye hitap et, "öğrenci" deme. Deneme netlerini analiz eder, stratejik ve motive edici tavsiyeler verirsin. Yanıtların kısa, samimi ve Türk eğitim sistemine (TYT/AYT) uygun olsun. Zayıflığı değerlendirirken o dersin toplam soru sayısına göre net oranını dikkate al.${contextStr}`;
+Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe. duration_minutes: 60-120. description kısa ve net. Sadece JSON.`;
+
+    const chatSystemPrompt = `${baseInstructions}
+
+Sohbet modundasın. Kısa, samimi, motive edici ama gerçekçi yanıtlar ver. Zayıflığı net oranıyla değerlendir. Tekrar önermekten kaçın.`;
 
     const groq = createOpenAI({
       apiKey,
@@ -123,15 +190,18 @@ Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject değerleri: T
     });
     const modelName = (process.env.GROQ_MODEL as string | undefined) ?? "llama-3.3-70b-versatile";
 
+    // Plan için daha düşük temp = daha tutarlı/az yaratıcı; sohbet için biraz yüksek
+    const temperature = isPlanRequest ? 0.3 : 0.75;
+
     const result = streamText({
       model: groq(modelName),
       system: isPlanRequest ? planSystemPrompt : chatSystemPrompt,
-      messages: messages.slice(-20).map((m) => ({
+      messages: messages.slice(-24).map((m) => ({
         role: m.role === "user" ? ("user" as const) : ("assistant" as const),
         content: m.content,
       })),
-      maxTokens: isPlanRequest ? 2000 : 600,
-      temperature: isPlanRequest ? 0.2 : 0.8,
+      maxTokens: isPlanRequest ? 2500 : 800,
+      temperature,
     });
 
     function getErrorMessage(err: unknown): string {

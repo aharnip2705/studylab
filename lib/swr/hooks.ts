@@ -8,11 +8,13 @@ import {
   getResources,
   getUserResources,
 } from "@/lib/actions/plans";
+import { getTopicCompletionsForCoach } from "@/lib/actions/topic-completions";
 import { getVideos, getChannels } from "@/lib/actions/videos";
 import { getSavedVideos, getSavedVideoIds } from "@/lib/actions/saved-videos";
 import { getStats } from "@/lib/actions/stats";
 import { getRecentExams } from "@/lib/actions/practice-exams";
 import { getSubscription } from "@/lib/actions/subscription";
+import { getProfile } from "@/lib/actions/profile";
 import { SWR_KEYS } from "./keys";
 
 const defaultSwrOptions = {
@@ -80,6 +82,33 @@ export function usePracticeExams() {
 /** Abonelik bilgisi */
 export function useSubscription() {
   return useSWR(SWR_KEYS.subscription, getSubscription, defaultSwrOptions);
+}
+
+/** AI Koç için: kaynaklar + konu tamamlamaları + profil coach_resource_ids */
+export function useCoachData() {
+  async function fetcher() {
+    const [gorevData, topicRes, profile] = await Promise.all([
+      (async () => {
+        const [subjects, publishers, dersRes, denemeRes, userRes] = await Promise.all([
+          getSubjects(),
+          getPublishers(),
+          getResources("ders"),
+          getResources("deneme"),
+          getUserResources(),
+        ]);
+        return { subjects, publishers, dersResources: dersRes, denemeResources: denemeRes, userResources: userRes };
+      })(),
+      getTopicCompletionsForCoach(),
+      getProfile(),
+    ]);
+    const coachIds = (profile as { coach_resource_ids?: { t: string; id: string }[] } | null)?.coach_resource_ids ?? [];
+    return {
+      ...gorevData,
+      topicCompletions: topicRes.completions,
+      coachResourceIds: Array.isArray(coachIds) ? coachIds : [],
+    };
+  }
+  return useSWR(SWR_KEYS.coachData, fetcher, defaultSwrOptions);
 }
 
 /** Belirli key'i yeniden doğrula */

@@ -23,6 +23,32 @@ export async function getTopicCompletions() {
   };
 }
 
+/** Koç için: ders adıyla birlikte tamamlanan konular */
+export async function getTopicCompletionsForCoach(): Promise<{
+  completions: { subject: string; topic: string; examType: string }[];
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { completions: [] };
+
+  const [tcRes, subRes] = await Promise.all([
+    supabase.from("topic_completions").select("subject_id, topic_name, exam_type").eq("user_id", user.id),
+    supabase.from("subjects").select("id, name"),
+  ]);
+  const completions = tcRes.data ?? [];
+  const subjectMap = new Map((subRes.data ?? []).map((s) => [s.id, s.name]));
+
+  return {
+    completions: completions.map((r) => ({
+      subject: subjectMap.get(r.subject_id) ?? "Bilinmeyen",
+      topic: r.topic_name ?? "",
+      examType: r.exam_type ?? "tyt",
+    })),
+  };
+}
+
 export async function toggleTopicCompletion(
   subjectId: string,
   topicName: string,
