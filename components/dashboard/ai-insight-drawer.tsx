@@ -3,10 +3,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Brain, Sparkles, Send, Loader2, Eye, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Brain, Sparkles, Send, Loader2, Eye } from "lucide-react";
 import type { PracticeExam } from "@/lib/actions/practice-exams";
-import { revalidateKey, useCoachData } from "@/lib/swr/hooks";
-import { updateCoachResources } from "@/lib/actions/profile";
+import { useCoachData } from "@/lib/swr/hooks";
 import { PlanPreviewModal } from "./plan-preview-modal";
 
 interface AiPlanTask {
@@ -106,8 +105,6 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
   const [isOpen, setIsOpen] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
-  const [showResources, setShowResources] = useState(false);
-  const [savingResources, setSavingResources] = useState(false);
   const insightFetchedRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -174,17 +171,6 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
       console.error("[AI chat]", err);
     },
   });
-
-  async function toggleResource(item: CoachResourceItem) {
-    const key = `${item.t}:${item.id}`;
-    const next: { t: "r" | "u"; id: string }[] = selectedSet.has(key)
-      ? (coachResourceIds as { t: "r" | "u"; id: string }[]).filter((c) => !(c.t === item.t && c.id === item.id))
-      : [...(coachResourceIds as { t: "r" | "u"; id: string }[]), { t: item.t, id: item.id }];
-    setSavingResources(true);
-    const res = await updateCoachResources(next);
-    setSavingResources(false);
-    if (!res.error) mutateCoach();
-  }
 
   // localStorage'a kaydet
   useEffect(() => {
@@ -385,60 +371,6 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                     )}
                   </div>
                 )}
-
-                {/* Kaynaklarım - Koç için seçilen kaynaklar */}
-                <div className="mb-4 rounded-xl border border-white/10 bg-white/5 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setShowResources(!showResources)}
-                    className="flex w-full items-center justify-between px-4 py-3 text-left"
-                  >
-                    <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-400">
-                      <BookOpen className="h-4 w-4" />
-                      Kaynaklarım
-                      {coachResourcesForApi.length > 0 && (
-                        <span className="rounded-full bg-purple-500/30 px-2 py-0.5 text-[10px]">
-                          {coachResourcesForApi.length} seçili
-                        </span>
-                      )}
-                    </span>
-                    {showResources ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
-                  </button>
-                  {showResources && (
-                    <div className="max-h-40 overflow-y-auto border-t border-white/10 px-4 py-3">
-                      <p className="mb-2 text-[11px] text-slate-500">
-                        Programa göre kullanacağın kitapları/denemeleri seç. Koç sadece bunlarla program hazırlar.
-                      </p>
-                      {allResources.length === 0 ? (
-                        <p className="text-xs text-slate-500">Henüz kaynak yok. Görev ekle sayfasından ekleyebilirsin.</p>
-                      ) : (
-                        <div className="space-y-1">
-                          {allResources.map((item) => {
-                            const key = `${item.t}:${item.id}`;
-                            const checked = selectedSet.has(key);
-                            return (
-                              <label
-                                key={key}
-                                className={`flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-white/5 ${
-                                  checked ? "text-purple-300" : "text-slate-400"
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => toggleResource(item)}
-                                  disabled={savingResources}
-                                  className="rounded border-white/30 bg-transparent text-purple-500"
-                                />
-                                <span className="truncate">{item.name || "(İsimsiz)"}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
 
                 {/* AI Tavsiye Card */}
                 <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">

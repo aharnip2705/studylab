@@ -79,12 +79,12 @@ export function StatsCharts({ stats }: StatsChartsProps) {
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 transition-all hover:border-slate-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:shadow-slate-950/30">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
           Önceki haftaya kıyasla
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="group rounded-xl border border-slate-200 bg-slate-50 p-5 transition-all hover:scale-[1.01] hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:hover:border-slate-700">
-            <p className="mb-0.5 text-xs font-medium text-slate-500">Toplam çözülen soru</p>
+            <p className="mb-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">Toplam çözülen soru</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">
               {previousWeekTotal} → {weeklyTotal}
             </p>
@@ -98,7 +98,7 @@ export function StatsCharts({ stats }: StatsChartsProps) {
             </p>
           </div>
           <div className="group rounded-xl border border-slate-200 bg-slate-50 p-5 transition-all hover:scale-[1.01] hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:hover:border-slate-700">
-            <p className="mb-0.5 text-xs font-medium text-slate-500">Bitirilen konu</p>
+            <p className="mb-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">Bitirilen konu</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">
               {previousWeekTopics} → {thisWeekTopics}
             </p>
@@ -152,7 +152,7 @@ export function StatsCharts({ stats }: StatsChartsProps) {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 transition-all hover:border-slate-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:shadow-slate-950/30">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
           Bu hafta – günlük soru çözümü
         </p>
         <div className="h-56">
@@ -212,7 +212,7 @@ export function StatsCharts({ stats }: StatsChartsProps) {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 transition-all hover:border-slate-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:shadow-slate-950/30">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
           Derse göre dağılım
         </p>
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">

@@ -94,7 +94,7 @@ function buildContext(params: {
     const names = params.coachResources.map((r) => r.name ?? r.id).filter(Boolean);
     parts.push(`Kullanıcının sahip olduğu kaynaklar (SADECE bunları programda kullan):\n${names.join("\n")}\n\nProgram hazırlarken SADECE bu listedeki kaynakları öner. Listede olmayan kitap/deneme önerme.`);
   } else {
-    parts.push("Kullanıcı kaynak listesi EKLEMEMİŞ. Program hazırlarken genel kitap isimleri kullanabilirsin ama önce \"AI Koç içinde Kaynaklarım bölümünden sahip olduğun kitapları ekle, daha kişisel program hazırlayabilirim\" diye öner.");
+    parts.push("Kullanıcı kaynak listesi EKLEMEMİŞ. Program hazırlarken genel kitap isimleri kullanabilirsin ama önce \"Konularım/Kaynaklarım sayfasından sahip olduğun kitapları ekle, daha kişisel program hazırlayabilirim\" diye öner.");
   }
 
   if (params.studyField) parts.push(`Alan: ${params.studyField}`);
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
 - Kullanıcıya "sen" diye hitap et, "öğrenci" deme.
 - Türk eğitim sistemine (TYT/AYT, MEB müfredatı) göre tavsiye ver.
 - Konuşma geçmişini MUTLAKA oku. Daha önce verdiğin önerileri TEKRARLAMA. Aynı soru tekrar gelirse farklı açı, derinlemesine analiz veya yeni perspektif sun.
-- Bilgi yoksa uydurma. "Bu bilgiyi sistemde göremiyorum, Konu Takip / Kaynaklarım'dan ekleyebilirsin" de.${contextStr}`;
+- Bilgi yoksa uydurma. "Bu bilgiyi sistemde göremiyorum, Konularım/Kaynaklarım'dan ekleyebilirsin" de.${contextStr}`;
 
     const planSystemPrompt = `${baseInstructions}
 

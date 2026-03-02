@@ -112,8 +112,8 @@ function CircularProgress({
         </div>
       </div>
       <div className="text-center">
-        <p className="text-xs font-medium text-slate-600 dark:text-slate-300">{label}</p>
-        <p className="text-[10px] text-slate-400 dark:text-slate-500">{sublabel}</p>
+        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{label}</p>
+        <p className="text-[10px] font-medium text-slate-600 dark:text-slate-300">{sublabel}</p>
       </div>
     </div>
   );
@@ -139,7 +139,7 @@ function ComparisonCard({
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/80 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-slate-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:shadow-slate-950/50">
       <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100/40 opacity-0 transition-opacity group-hover:opacity-100 dark:to-slate-800/20" />
-      <p className="relative mb-1 text-xs font-medium uppercase tracking-wider text-slate-500">
+      <p className="relative mb-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
         {label}
       </p>
       <p className="relative text-2xl font-bold text-slate-900 dark:text-white">
@@ -165,7 +165,7 @@ function ComparisonCard({
           )}
           {absDiff.toFixed(1)}
         </span>
-        <span className="text-[11px] text-slate-500">
+        <span className="text-[11px] text-slate-600 dark:text-slate-400">
           ortalamaya göre
         </span>
       </div>
@@ -186,7 +186,7 @@ function NetTrendChart({ data }: { data: { name: string; net: number }[] }) {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 dark:border-slate-800 dark:bg-slate-900/80">
-      <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
+      <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
         Net Trendi (Son 5)
       </p>
       <div className="h-48">
@@ -283,10 +283,10 @@ function SubjectBreakdown({
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 dark:border-slate-800 dark:bg-slate-900/80">
-      <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
+      <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
         Ders Bazlı Performans (Denemelere Göre Ortalama)
       </p>
-      <p className="mb-3 text-[11px] text-slate-400 dark:text-slate-500">
+      <p className="mb-3 text-[11px] text-slate-600 dark:text-slate-400">
         Ort. net = denemelerdeki net ortalaması · Ort. boş = cevapsız bırakılan soru ortalaması
       </p>
       <div className="space-y-3">
@@ -337,7 +337,7 @@ function ExamHistoryTable({
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 dark:border-slate-800 dark:bg-slate-900/80">
-      <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
+      <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
         Deneme Geçmişi
       </p>
       <div className="overflow-x-auto">
@@ -480,7 +480,7 @@ export function ExamAnalytics({ exams, studyField, tytTargetNet, aytTargetNet }:
       {effectiveNetTarget != null && effectiveNetTarget > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 dark:border-slate-800 dark:bg-slate-900/80">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               Hedefe Yaklaşma
             </p>
             <span className="text-sm font-bold text-slate-900 dark:text-white">
@@ -495,7 +495,7 @@ export function ExamAnalytics({ exams, studyField, tytTargetNet, aytTargetNet }:
               }}
             />
           </div>
-          <p className="mt-1.5 text-[11px] text-slate-500">
+          <p className="mt-1.5 text-[11px] text-slate-600 dark:text-slate-400">
             {latest.net >= effectiveNetTarget
               ? "Hedefine ulaştın!"
               : `Hedefe ${(effectiveNetTarget - latest.net).toFixed(1)} net kaldı`}

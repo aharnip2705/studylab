@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { mutate } from "swr";
-import { Check, Square, BookOpen } from "lucide-react";
+import { Check, Square, BookOpen, BookMarked } from "lucide-react";
 import { toggleTopicCompletion } from "@/lib/actions/topic-completions";
+import { useCoachData } from "@/lib/swr/hooks";
+import { updateCoachResources } from "@/lib/actions/profile";
 import { SWR_KEYS } from "@/lib/swr/keys";
 
 type Subject = { id: string; name: string };
@@ -83,10 +85,10 @@ export function KonuTakipClient({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          Konu Takip
+          Konularım / Kaynaklarım
         </h1>
         <p className="mt-1 text-slate-600 dark:text-slate-400">
-          TYT ve AYT müfredatındaki konuları işaretleyerek ilerlemenizi takip edin.
+          Konu ilerlemenizi takip edin ve AI Koç için kullanacağınız kaynakları seçin.
         </p>
       </div>
 
@@ -179,6 +181,94 @@ export function KonuTakipClient({
           );
         })}
       </div>
+
+      {/* Kaynaklarım - AI Koç için kullanılacak kaynaklar */}
+      <KaynaklarimSection />
+    </div>
+  );
+}
+
+type CoachResourceItem = { t: "r" | "u"; id: string; name: string };
+
+function KaynaklarimSection() {
+  const { data: coachData, mutate: mutateCoach } = useCoachData();
+  const [savingResources, setSavingResources] = useState(false);
+  const dersResources = coachData?.dersResources ?? [];
+  const denemeResources = coachData?.denemeResources ?? [];
+  const userResources = coachData?.userResources ?? [];
+  const coachResourceIds = coachData?.coachResourceIds ?? [];
+
+  const allResources: CoachResourceItem[] = useMemo(() => {
+    const ders = dersResources.map((r: { id: string; name: string }) => ({ t: "r" as const, id: r.id, name: r.name ?? "" }));
+    const deneme = denemeResources.map((r: { id: string; name: string }) => ({ t: "r" as const, id: r.id, name: r.name ?? "" }));
+    const user = userResources.map((r: { id: string; name: string }) => ({ t: "u" as const, id: r.id, name: r.name ?? "" }));
+    return [...ders, ...deneme, ...user];
+  }, [dersResources, denemeResources, userResources]);
+
+  const selectedSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of coachResourceIds) {
+      if (c?.t && c?.id) s.add(`${c.t}:${c.id}`);
+    }
+    return s;
+  }, [coachResourceIds]);
+
+  async function toggleResource(item: CoachResourceItem) {
+    const key = `${item.t}:${item.id}`;
+    const next: { t: "r" | "u"; id: string }[] = selectedSet.has(key)
+      ? (coachResourceIds as { t: "r" | "u"; id: string }[]).filter((c) => !(c.t === item.t && c.id === item.id))
+      : [...(coachResourceIds as { t: "r" | "u"; id: string }[]), { t: item.t, id: item.id }];
+    setSavingResources(true);
+    const res = await updateCoachResources(next);
+    setSavingResources(false);
+    if (!res.error) mutateCoach();
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-4 flex items-center gap-2">
+        <BookMarked className="h-5 w-5 text-indigo-500" />
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Kaynaklarım</h2>
+        {allResources.length > 0 && (
+          <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+            {selectedSet.size} seçili
+          </span>
+        )}
+      </div>
+      <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+        AI Koç program hazırlarken kullanacağınız kitapları ve denemeleri seçin.
+      </p>
+      {allResources.length === 0 ? (
+        <p className="text-sm text-slate-500">Henüz kaynak yok. Görev Ekle sayfasından görev ekleyerek kaynakları oluşturabilirsiniz.</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {allResources.map((item) => {
+            const key = `${item.t}:${item.id}`;
+            const checked = selectedSet.has(key);
+            return (
+              <label
+                key={key}
+                className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors ${
+                  checked
+                    ? "border-indigo-500/50 bg-indigo-50 dark:border-indigo-500/50 dark:bg-indigo-900/20"
+                    : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-slate-600"
+                } ${savingResources ? "opacity-70" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleResource(item)}
+                  disabled={savingResources}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600"
+                />
+                <span className={`font-medium ${checked ? "text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-slate-300"}`}>
+                  {item.name || "(İsimsiz)"}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -49,6 +49,7 @@ export async function updateCoachResources(ids: { t: "r" | "u"; id: string }[]) 
     return { error: msg };
   }
   revalidatePath("/dashboard/istatistikler");
+  revalidatePath("/dashboard/konu-takip");
   revalidatePath("/dashboard");
   return { success: true };
 }
