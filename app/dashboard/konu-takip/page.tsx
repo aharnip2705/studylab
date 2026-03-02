@@ -19,7 +19,7 @@ export default async function KonuTakipPage() {
   const [subjectsRes, completionsRes, userResources, publishers, dersResources, denemeResources] = await Promise.all([
     supabase
       .from("subjects")
-      .select("id, name")
+      .select("id, name, icon_url")
       .eq("program_id", PROGRAM_ID)
       .order("sort_order"),
     supabase

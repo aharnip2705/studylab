@@ -9,11 +9,34 @@ import { updateCoachResources } from "@/lib/actions/profile";
 import { useCoachData } from "@/lib/swr/hooks";
 import { SWR_KEYS } from "@/lib/swr/keys";
 
-type Subject = { id: string; name: string };
+type Subject = { id: string; name: string; icon_url?: string | null };
 type Completion = { subject_id: string; topic_name: string; exam_type: string };
 type UserResource = { id: string; name: string; icon_url?: string | null };
-type Resource = { id: string; name: string; icon_url?: string | null; publisher_id?: string | null };
+type Resource = { id: string; name: string; icon_url?: string | null; publisher_id?: string | null; subject_id?: string | null };
 type Publisher = { id: string; name: string; logo_url?: string | null };
+
+// Görev Ekle ile aynı ders eşleştirmesi
+const SUBJECT_FILTER_KEYWORDS: Record<string, string[]> = {
+  "matematik": ["matematik", "geometri", "türev", "integral", "problem", "polinom", "fonksiyon", "üçgen", "analitik"],
+  "geometri": ["geometri", "üçgen", "açı", "alan", "çevre", "analitik geometri"],
+  "fizik": ["fizik", "kuvvet", "hareket", "elektrik", "optik", "dalga", "enerji"],
+  "kimya": ["kimya", "asit", "baz", "tuz", "organik", "mol", "element", "bileşik"],
+  "biyoloji": ["biyoloji", "hücre", "genetik", "ekosistem", "canlı"],
+  "türkçe": ["türkçe", "türk dili", "fiilimsi", "paragraf", "sözcük", "anlam", "dil bilgisi"],
+  "tarih": ["tarih", "osmanlı", "cumhuriyet", "inkılap"],
+  "coğrafya": ["coğrafya", "iklim", "nüfus", "harita"],
+  "felsefe": ["felsefe", "mantık", "psikoloji", "sosyoloji"],
+  "edebiyat": ["edebiyat", "şiir", "roman", "hikaye", "divan"],
+};
+
+function resourceMatchesSubject(resourceName: string, subjectName: string): boolean {
+  const name = resourceName.toLowerCase();
+  const subj = subjectName.toLowerCase();
+  if (name.includes(subj)) return true;
+  const keywords = SUBJECT_FILTER_KEYWORDS[subj];
+  if (keywords) return keywords.some((kw) => name.includes(kw));
+  return false;
+}
 
 interface KonuTakipClientProps {
   tytSubjects: string[];
@@ -39,6 +62,91 @@ function isCompleted(
       c.subject_id === subjectId &&
       c.topic_name === topicName &&
       c.exam_type === examType
+  );
+}
+
+/* ─── Ders dropdown ─── */
+function SubjectSelect({
+  subjects,
+  selectedId,
+  onSelect,
+}: {
+  subjects: Subject[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function outside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false);
+    }
+    document.addEventListener("mousedown", outside);
+    return () => document.removeEventListener("mousedown", outside);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return subjects.filter((s) => s.name.toLowerCase().includes(q));
+  }, [subjects, search]);
+
+  const selected = subjects.find((s) => s.id === selectedId);
+  const displayValue = selected?.name ?? (isOpen ? "" : "Ders seçin");
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">Ders</label>
+      <button
+        type="button"
+        onClick={() => setIsOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-10 text-left text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {selected?.icon_url ? (
+            <img src={selected.icon_url} alt="" className="h-6 w-6 shrink-0 rounded object-contain" referrerPolicy="no-referrer"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          ) : (
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-100 text-xs text-slate-400 dark:bg-slate-700">—</span>
+          )}
+          <span className={selected ? "font-medium truncate" : "text-slate-500"}>{displayValue}</span>
+        </span>
+        <ChevronDown className={`absolute right-3 h-4 w-4 shrink-0 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className="animate-dropdown-in absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+          <div className="border-b border-slate-100 p-2 dark:border-slate-700">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Ders ara..." className="w-full rounded border border-slate-200 py-1.5 pl-8 pr-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+            </div>
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-4 text-center text-sm text-slate-500">{search ? "Sonuç bulunamadı" : "Ders yok"}</p>
+            ) : filtered.map((s) => (
+              <button key={s.id} type="button"
+                onClick={() => { onSelect(s.id); setIsOpen(false); setSearch(""); }}
+                className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                  selectedId === s.id ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"
+                }`}
+              >
+                {s.icon_url ? (
+                  <img src={s.icon_url} alt="" className="h-6 w-6 shrink-0 rounded object-contain" referrerPolicy="no-referrer"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                ) : (
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-100 text-xs text-slate-400 dark:bg-slate-700">—</span>
+                )}
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -260,11 +368,13 @@ function ResourceSelect({
 
 /* ─── Kaynaklarım Tab ─── */
 function KaynaklarimTab({
+  subjects,
   initialUserResources,
   publishers,
   dersResources,
   denemeResources,
 }: {
+  subjects: Subject[];
   initialUserResources: UserResource[];
   publishers: Publisher[];
   dersResources: Resource[];
@@ -279,10 +389,16 @@ function KaynaklarimTab({
     [coachData]
   );
 
-  // Seçim state'leri
+  // Seçim state'leri: Ders -> Yayın evi -> Kitap
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [selectedPublisherId, setSelectedPublisherId] = useState("");
   const [selectedResourceId, setSelectedResourceId] = useState("");
   const [isUserSelection, setIsUserSelection] = useState(false);
+
+  // Varsayılan ders
+  useEffect(() => {
+    if (!selectedSubjectId && subjects[0]) setSelectedSubjectId(subjects[0].id);
+  }, [subjects, selectedSubjectId]);
 
   // Özel kaynak
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -293,17 +409,39 @@ function KaynaklarimTab({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const resourcesForPublisher = useMemo(
-    () => selectedPublisherId ? allSystemResources.filter((r) => r.publisher_id === selectedPublisherId) : [],
-    [allSystemResources, selectedPublisherId]
-  );
+  const selectedSubject = selectedSubjectId ? subjects.find((s) => s.id === selectedSubjectId) : null;
+
+  // Derse göre yayınevleri: Bu derste en az bir kaynağı olan yayınevleri
+  const publishersForSubject = useMemo(() => {
+    if (!selectedSubjectId || !selectedSubject?.name) return publishers;
+    return publishers.filter((p) =>
+      dersResources.some((r) => {
+        if (r.publisher_id !== p.id) return false;
+        if (r.subject_id) return r.subject_id === selectedSubjectId;
+        return resourceMatchesSubject(r.name ?? "", selectedSubject.name);
+      })
+    );
+  }, [publishers, dersResources, selectedSubjectId, selectedSubject?.name]);
+
+  // Yayınevi + derse göre kitaplar (ders kaynakları derse göre filtrelenir; deneme her zaman gösterilir)
+  const resourcesForPublisherAndSubject = useMemo(() => {
+    if (!selectedPublisherId) return [];
+    const fromPublisher = [...dersResources, ...denemeResources].filter((r) => r.publisher_id === selectedPublisherId);
+    const isDeneme = (r: Resource) => denemeResources.some((dr) => dr.id === r.id);
+    if (!selectedSubjectId || !selectedSubject?.name) return fromPublisher;
+    return fromPublisher.filter((r) => {
+      if (isDeneme(r)) return true;
+      if (r.subject_id) return r.subject_id === selectedSubjectId;
+      return resourceMatchesSubject(r.name ?? "", selectedSubject.name);
+    });
+  }, [dersResources, denemeResources, selectedPublisherId, selectedSubjectId, selectedSubject?.name]);
 
   // Seçilen kaynağın adı
   const selectedName = useMemo(() => {
     if (!selectedResourceId) return "";
     if (isUserSelection) return localUserResources.find((r) => r.id === selectedResourceId)?.name ?? "";
-    return resourcesForPublisher.find((r) => r.id === selectedResourceId)?.name ?? allSystemResources.find((r) => r.id === selectedResourceId)?.name ?? "";
-  }, [selectedResourceId, isUserSelection, localUserResources, resourcesForPublisher, allSystemResources]);
+    return resourcesForPublisherAndSubject.find((r) => r.id === selectedResourceId)?.name ?? allSystemResources.find((r) => r.id === selectedResourceId)?.name ?? "";
+  }, [selectedResourceId, isUserSelection, localUserResources, resourcesForPublisherAndSubject, allSystemResources]);
 
   // Mevcut AI kaynakları — hem sistem hem kullanıcı
   const savedResources = useMemo(() => {
@@ -392,7 +530,7 @@ function KaynaklarimTab({
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Kaynak Ekle</h2>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Yayın evini seçip kitabı bulun, sonra listeye ekleyin.</p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Ders seçin, yayın evini seçin, kitabı bulup listeye ekleyin.</p>
           </div>
           <button
             type="button"
@@ -426,8 +564,18 @@ function KaynaklarimTab({
         )}
 
         <div className="space-y-3">
+          <SubjectSelect
+            subjects={subjects}
+            selectedId={selectedSubjectId}
+            onSelect={(id) => {
+              setSelectedSubjectId(id);
+              setSelectedPublisherId("");
+              setSelectedResourceId("");
+              setIsUserSelection(false);
+            }}
+          />
           <PublisherSelect
-            publishers={publishers}
+            publishers={publishersForSubject}
             selectedId={selectedPublisherId}
             onSelect={(id) => { setSelectedPublisherId(id); setSelectedResourceId(""); setIsUserSelection(false); }}
           />
@@ -435,7 +583,7 @@ function KaynaklarimTab({
             <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">Kitap / kaynak</label>
             {selectedPublisherId ? (
               <ResourceSelect
-                resources={resourcesForPublisher}
+                resources={resourcesForPublisherAndSubject}
                 userResources={localUserResources}
                 selectedId={selectedResourceId}
                 onSelect={handleSelect}
@@ -475,7 +623,7 @@ function KaynaklarimTab({
       {/* Kayıtlı kaynaklar listesi */}
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          AI Koç Kaynak Listem {savedResources.length > 0 && `(${savedResources.length})`}
+          Kaynak Listem {savedResources.length > 0 && `(${savedResources.length})`}
         </p>
         {savedResources.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900/40">
@@ -663,6 +811,7 @@ export function KonuTakipClient({
         </>
       ) : (
         <KaynaklarimTab
+          subjects={subjects}
           initialUserResources={initialUserResources}
           publishers={publishers}
           dersResources={dersResources}
