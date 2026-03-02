@@ -1,5 +1,8 @@
 # YKS Ders Paneli
 
+> **© 2025 StudyLab. Tüm Hakları Saklıdır.** Bu proje telif hakkı ile korunmaktadır.  
+> Kopyalama, dağıtma veya ticari kullanım yasaktır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+
 YKS'ye hazırlanan öğrenciler için abonelik tabanlı ders planlama ve takip uygulaması.
 
 ## Teknoloji
@@ -36,7 +39,7 @@ npm install
 
 ### 4. Ortam Değişkenleri
 
-Proje kökünde `.env.local` dosyası oluşturun (`.env.local.example` dosyasını kopyalayın):
+Proje kökünde `.env.local` dosyası oluşturun (`.env.example` dosyasını kopyalayın):
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
@@ -107,6 +110,12 @@ Tarayıcıda [http://localhost:3000](http://localhost:3000) adresine gidin.
 ## Sonraki Adımlar (Faz 4)
 
 - Video dersler
+
+## Güvenlik
+
+- **Asla** `.env`, `.env.local` veya API anahtarlarını commit etmeyin
+- Ortam değişkenlerini yalnızca `.env.example` şablonundan kopyalayıp kendi değerlerinizi ekleyin
+- Supabase Service Role Key yalnızca sunucu tarafında kullanılmalı ve asla client'a gönderilmemeli
 
 ## Dokümanlar
 
