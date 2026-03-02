@@ -14,8 +14,25 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { useTheme } from "next-themes";
+import { useMemo } from "react";
 
 const COLORS = ["#818cf8", "#34d399", "#fb923c", "#a78bfa", "#f472b6", "#22d3ee"];
+
+function useChartTheme() {
+  const { resolvedTheme } = useTheme();
+  return useMemo(() => {
+    const dark = resolvedTheme === "dark";
+    return {
+      bg: dark ? "#0f172a" : "#ffffff",
+      border: dark ? "#1e293b" : "#e2e8f0",
+      grid: dark ? "#1e293b" : "#e2e8f0",
+      text: dark ? "#e2e8f0" : "#334155",
+      tick: "#64748b",
+      label: "#94a3b8",
+    };
+  }, [resolvedTheme]);
+}
 
 interface StatsChartsProps {
   stats: {
@@ -29,9 +46,11 @@ interface StatsChartsProps {
 }
 
 export function StatsCharts({ stats }: StatsChartsProps) {
+  const ct = useChartTheme();
+
   if (!stats) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8">
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-8 dark:border-slate-800 dark:bg-slate-900/80">
         <p className="text-center text-slate-500">İstatistik yüklenemedi.</p>
       </div>
     );
@@ -49,36 +68,43 @@ export function StatsCharts({ stats }: StatsChartsProps) {
   const questionDiff = weeklyTotal - previousWeekTotal;
   const topicDiff = thisWeekTopics - previousWeekTopics;
 
+  const tooltipStyle = {
+    backgroundColor: ct.bg,
+    border: `1px solid ${ct.border}`,
+    borderRadius: "12px",
+    color: ct.text,
+    fontSize: "12px",
+  };
+
   return (
     <div className="space-y-5">
-      {/* Önceki hafta kıyaslaması */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 transition-all hover:border-slate-700 hover:shadow-lg hover:shadow-slate-950/30">
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 transition-all hover:border-slate-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:shadow-slate-950/30">
         <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
           Önceki haftaya kıyasla
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="group rounded-xl border border-slate-800 bg-slate-800/40 p-5 transition-all hover:scale-[1.01] hover:border-slate-700">
+          <div className="group rounded-xl border border-slate-200 bg-slate-50 p-5 transition-all hover:scale-[1.01] hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:hover:border-slate-700">
             <p className="mb-0.5 text-xs font-medium text-slate-500">Toplam çözülen soru</p>
-            <p className="text-2xl font-bold text-white">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">
               {previousWeekTotal} → {weeklyTotal}
             </p>
             <p
               className={`text-sm font-semibold ${
-                questionDiff >= 0 ? "text-emerald-400" : "text-rose-400"
+                questionDiff >= 0 ? "text-emerald-500 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
               }`}
             >
               {questionDiff >= 0 ? "+" : ""}
               {questionDiff} soru
             </p>
           </div>
-          <div className="group rounded-xl border border-slate-800 bg-slate-800/40 p-5 transition-all hover:scale-[1.01] hover:border-slate-700">
+          <div className="group rounded-xl border border-slate-200 bg-slate-50 p-5 transition-all hover:scale-[1.01] hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:hover:border-slate-700">
             <p className="mb-0.5 text-xs font-medium text-slate-500">Bitirilen konu</p>
-            <p className="text-2xl font-bold text-white">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">
               {previousWeekTopics} → {thisWeekTopics}
             </p>
             <p
               className={`text-sm font-semibold ${
-                topicDiff >= 0 ? "text-emerald-400" : "text-rose-400"
+                topicDiff >= 0 ? "text-emerald-500 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
               }`}
             >
               {topicDiff >= 0 ? "+" : ""}
@@ -96,29 +122,23 @@ export function StatsCharts({ stats }: StatsChartsProps) {
               layout="vertical"
               margin={{ top: 5, right: 20, left: 70, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
               <XAxis
                 type="number"
-                tick={{ fill: "#64748b", fontSize: 11 }}
+                tick={{ fill: ct.tick, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fill: "#94a3b8", fontSize: 12 }}
+                tick={{ fill: ct.label, fontSize: 12 }}
                 width={65}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "#0f172a",
-                  border: "1px solid #1e293b",
-                  borderRadius: "12px",
-                  color: "#e2e8f0",
-                  fontSize: "12px",
-                }}
+                contentStyle={tooltipStyle}
                 formatter={(v, name) => [
                   v ?? 0,
                   name === "soru" ? "Soru" : "Konu",
@@ -131,8 +151,7 @@ export function StatsCharts({ stats }: StatsChartsProps) {
         </div>
       </div>
 
-      {/* Günlük soru çözümü */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 transition-all hover:border-slate-700 hover:shadow-lg hover:shadow-slate-950/30">
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 transition-all hover:border-slate-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:shadow-slate-950/30">
         <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
           Bu hafta – günlük soru çözümü
         </p>
@@ -149,27 +168,21 @@ export function StatsCharts({ stats }: StatsChartsProps) {
                   <stop offset="100%" stopColor="#fb923c" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: "#64748b", fontSize: 11 }}
+                tick={{ fill: ct.tick, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: "#64748b", fontSize: 11 }}
+                tick={{ fill: ct.tick, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "#0f172a",
-                  border: "1px solid #1e293b",
-                  borderRadius: "12px",
-                  color: "#e2e8f0",
-                  fontSize: "12px",
-                }}
-                labelStyle={{ color: "#94a3b8" }}
+                contentStyle={tooltipStyle}
+                labelStyle={{ color: ct.label }}
                 formatter={(v, name) => [
                   v ?? 0,
                   name === "tamamlandi" ? "Tamamlandı" : "Kısmen",
@@ -198,8 +211,7 @@ export function StatsCharts({ stats }: StatsChartsProps) {
         </div>
       </div>
 
-      {/* Derse göre dağılım */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 transition-all hover:border-slate-700 hover:shadow-lg hover:shadow-slate-950/30">
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 transition-all hover:border-slate-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:shadow-slate-950/30">
         <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
           Derse göre dağılım
         </p>
@@ -227,13 +239,7 @@ export function StatsCharts({ stats }: StatsChartsProps) {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0f172a",
-                    border: "1px solid #1e293b",
-                    borderRadius: "12px",
-                    color: "#e2e8f0",
-                    fontSize: "12px",
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(v: number | undefined) => [v ?? 0, "Soru"]}
                 />
               </PieChart>
@@ -249,10 +255,10 @@ export function StatsCharts({ stats }: StatsChartsProps) {
                     className="inline-block h-3 w-3 shrink-0 rounded-sm"
                     style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   />
-                  <span className="text-sm text-slate-300">
+                  <span className="text-sm text-slate-600 dark:text-slate-300">
                     {item.name}{" "}
-                    <span className="font-semibold text-white">{pct}%</span>
-                    <span className="ml-1 text-xs text-slate-500">({item.toplam})</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">{pct}%</span>
+                    <span className="ml-1 text-xs text-slate-400 dark:text-slate-500">({item.toplam})</span>
                   </span>
                 </div>
               );

@@ -180,6 +180,13 @@ function LoginForm() {
           </Link>
         </p>
       </div>
+
+      <a
+        href="mailto:iletisim@studylab.tr"
+        className="fixed bottom-5 right-6 text-xs text-slate-400 opacity-70 transition-opacity duration-300 hover:opacity-100 dark:text-slate-500"
+      >
+        iletisim@studylab.tr
+      </a>
     </main>
   );
 }

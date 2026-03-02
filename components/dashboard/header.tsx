@@ -40,7 +40,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-800/80"
+          className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80"
           title="Menüyü aç"
         >
           <Menu className="h-5 w-5" />

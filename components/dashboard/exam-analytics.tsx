@@ -20,6 +20,8 @@ import {
   filterSubjectDetailsByField,
   getExamConfig,
 } from "@/lib/exam-config";
+import { useTheme } from "next-themes";
+import { useMemo } from "react";
 
 interface ExamAnalyticsProps {
   exams: PracticeExam[];
@@ -87,7 +89,7 @@ function CircularProgress({
             r={r}
             fill="none"
             stroke="currentColor"
-            className="text-slate-800"
+            className="text-slate-200 dark:text-slate-800"
             strokeWidth="6"
           />
           <circle
@@ -104,14 +106,14 @@ function CircularProgress({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold text-white">
+          <span className="text-lg font-bold text-slate-900 dark:text-white">
             {value.toFixed(1)}
           </span>
         </div>
       </div>
       <div className="text-center">
-        <p className="text-xs font-medium text-slate-300">{label}</p>
-        <p className="text-[10px] text-slate-500">{sublabel}</p>
+        <p className="text-xs font-medium text-slate-600 dark:text-slate-300">{label}</p>
+        <p className="text-[10px] text-slate-400 dark:text-slate-500">{sublabel}</p>
       </div>
     </div>
   );
@@ -135,14 +137,14 @@ function ComparisonCard({
   const absDiff = Math.abs(diff);
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-slate-700 hover:shadow-lg hover:shadow-slate-950/50">
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-800/20 opacity-0 transition-opacity group-hover:opacity-100" />
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/80 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-slate-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:shadow-slate-950/50">
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100/40 opacity-0 transition-opacity group-hover:opacity-100 dark:to-slate-800/20" />
       <p className="relative mb-1 text-xs font-medium uppercase tracking-wider text-slate-500">
         {label}
       </p>
-      <p className="relative text-2xl font-bold text-white">
+      <p className="relative text-2xl font-bold text-slate-900 dark:text-white">
         {current.toFixed(1)}{" "}
-        <span className="text-sm font-normal text-slate-500">{unit}</span>
+        <span className="text-sm font-normal text-slate-400 dark:text-slate-500">{unit}</span>
       </p>
       <div className="relative mt-2 flex items-center gap-1.5">
         <span
@@ -172,8 +174,18 @@ function ComparisonCard({
 }
 
 function NetTrendChart({ data }: { data: { name: string; net: number }[] }) {
+  const { resolvedTheme } = useTheme();
+  const dark = resolvedTheme === "dark";
+  const ct = useMemo(() => ({
+    bg: dark ? "#0f172a" : "#ffffff",
+    border: dark ? "#1e293b" : "#e2e8f0",
+    grid: dark ? "#1e293b" : "#e2e8f0",
+    text: dark ? "#e2e8f0" : "#334155",
+    tick: "#64748b",
+  }), [dark]);
+
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+    <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 dark:border-slate-800 dark:bg-slate-900/80">
       <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
         Net Trendi (Son 5)
       </p>
@@ -186,24 +198,24 @@ function NetTrendChart({ data }: { data: { name: string; net: number }[] }) {
                 <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
             <XAxis
               dataKey="name"
-              tick={{ fill: "#64748b", fontSize: 11 }}
+              tick={{ fill: ct.tick, fontSize: 11 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fill: "#64748b", fontSize: 11 }}
+              tick={{ fill: ct.tick, fontSize: 11 }}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#0f172a",
-                border: "1px solid #1e293b",
+                backgroundColor: ct.bg,
+                border: `1px solid ${ct.border}`,
                 borderRadius: "12px",
-                color: "#e2e8f0",
+                color: ct.text,
                 fontSize: "12px",
               }}
               formatter={(v: number | undefined) => [(v ?? 0).toFixed(2) + " net", "Net"]}
@@ -270,11 +282,11 @@ function SubjectBreakdown({
   if (entries.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+    <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 dark:border-slate-800 dark:bg-slate-900/80">
       <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
         Ders Bazlı Performans (Denemelere Göre Ortalama)
       </p>
-      <p className="mb-3 text-[11px] text-slate-500">
+      <p className="mb-3 text-[11px] text-slate-400 dark:text-slate-500">
         Ort. net = denemelerdeki net ortalaması · Ort. boş = cevapsız bırakılan soru ortalaması
       </p>
       <div className="space-y-3">
@@ -288,19 +300,19 @@ function SubjectBreakdown({
           return (
             <div key={subject} className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-300">
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                   {subject}
                   {maxQ != null && (
-                    <span className="ml-1 font-normal text-slate-600">({maxQ} soru)</span>
+                    <span className="ml-1 font-normal text-slate-400 dark:text-slate-600">({maxQ} soru)</span>
                   )}
                 </span>
-                <span className="text-xs text-slate-400">
-                  Ort. <strong className="text-white">{avgNet.toFixed(1)}</strong> net · Ort.{" "}
-                  <strong className="text-white">{avgEmpty.toFixed(1)}</strong> boş
-                  <span className="ml-1 text-slate-500">({count} deneme)</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Ort. <strong className="text-slate-900 dark:text-white">{avgNet.toFixed(1)}</strong> net · Ort.{" "}
+                  <strong className="text-slate-900 dark:text-white">{avgEmpty.toFixed(1)}</strong> boş
+                  <span className="ml-1 text-slate-400 dark:text-slate-500">({count} deneme)</span>
                 </span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
+              <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-500"
                   style={{ width: `${Math.min(pct, 100)}%` }}
@@ -324,14 +336,14 @@ function ExamHistoryTable({
   aytTargetNet?: number | null;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+    <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 dark:border-slate-800 dark:bg-slate-900/80">
       <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-500">
         Deneme Geçmişi
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-slate-800 text-slate-500">
+            <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-800">
               <th className="pb-2 pr-4 font-medium">Tarih</th>
               <th className="pb-2 pr-4 font-medium">Ad</th>
               <th className="pb-2 pr-4 font-medium">Tip</th>
@@ -348,26 +360,26 @@ function ExamHistoryTable({
               return (
               <tr
                 key={e.id}
-                className="border-b border-slate-800/50 transition-colors hover:bg-slate-800/30"
+                className="border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-800/50 dark:hover:bg-slate-800/30"
               >
-                <td className="py-2.5 pr-4 text-slate-400">
+                <td className="py-2.5 pr-4 text-slate-500 dark:text-slate-400">
                   {displayDate}
                 </td>
-                <td className="py-2.5 pr-4 font-medium text-slate-200">
+                <td className="py-2.5 pr-4 font-medium text-slate-700 dark:text-slate-200">
                   {e.exam_name}
                 </td>
                 <td className="py-2.5 pr-4">
-                  <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-indigo-400">
+                  <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-indigo-600 dark:text-indigo-400">
                     {e.exam_type}
                   </span>
                 </td>
-                <td className="py-2.5 pr-4 font-semibold text-white">
+                <td className="py-2.5 pr-4 font-semibold text-slate-900 dark:text-white">
                   {e.net.toFixed(2)}
                 </td>
-                <td className="py-2.5 pr-4 text-slate-400">
+                <td className="py-2.5 pr-4 text-slate-500 dark:text-slate-400">
                   {e.total_correct}/{e.total_wrong}/{e.emptyCount}
                 </td>
-                <td className="py-2.5 pr-4 text-slate-400">
+                <td className="py-2.5 pr-4 text-slate-500 dark:text-slate-400">
                   {e.total_time_minutes} dk
                 </td>
                 <td className="py-2.5">
@@ -403,14 +415,14 @@ export function ExamAnalytics({ exams, studyField, tytTargetNet, aytTargetNet }:
 
   if (!latest) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-12 text-center">
-        <div className="mb-3 rounded-full bg-slate-800 p-4">
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/40 p-12 text-center dark:border-slate-800 dark:bg-slate-900/40">
+        <div className="mb-3 rounded-full bg-slate-200 p-4 dark:bg-slate-800">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-slate-500">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
           </svg>
         </div>
-        <p className="text-sm font-medium text-slate-400">Henüz deneme sonucu yok</p>
-        <p className="mt-1 text-xs text-slate-600">
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Henüz deneme sonucu yok</p>
+        <p className="mt-1 text-xs text-slate-400 dark:text-slate-600">
           İlk deneme sonucunu ekleyerek analizlerine başla
         </p>
       </div>
@@ -432,7 +444,7 @@ export function ExamAnalytics({ exams, studyField, tytTargetNet, aytTargetNet }:
   return (
     <div className="space-y-5">
       {/* Progress Circles */}
-      <div className="grid grid-cols-3 gap-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+      <div className="grid grid-cols-3 gap-4 rounded-2xl border border-slate-200 bg-white/80 p-6 dark:border-slate-800 dark:bg-slate-900/80">
         <CircularProgress
           value={latest.net}
           max={
@@ -466,16 +478,16 @@ export function ExamAnalytics({ exams, studyField, tytTargetNet, aytTargetNet }:
 
       {/* Net Target Progress */}
       {effectiveNetTarget != null && effectiveNetTarget > 0 && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+        <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 dark:border-slate-800 dark:bg-slate-900/80">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Hedefe Yaklaşma
             </p>
-            <span className="text-sm font-bold text-white">
+            <span className="text-sm font-bold text-slate-900 dark:text-white">
               {latest.net.toFixed(1)} / {formatTargetNet(effectiveNetTarget)}
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+          <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
               className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-700"
               style={{

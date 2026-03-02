@@ -112,6 +112,18 @@ export function DashboardSidebar() {
           );
         })}
       </nav>
+      <div className={`shrink-0 border-t border-slate-200 dark:border-slate-800 ${collapsed ? "px-2 py-3" : "px-4 py-3"}`}>
+        <a
+          href="mailto:iletisim@studylab.tr"
+          className="flex items-center gap-2 text-xs text-slate-400 opacity-70 transition-opacity duration-300 hover:opacity-100 dark:text-slate-500"
+          title="iletisim@studylab.tr"
+        >
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="shrink-0">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+          </svg>
+          {!collapsed && <span>iletisim@studylab.tr</span>}
+        </a>
+      </div>
     </aside>
     </>
   );

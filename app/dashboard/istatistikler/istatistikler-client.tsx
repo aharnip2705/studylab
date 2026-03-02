@@ -41,13 +41,13 @@ export function IstatistiklerClient() {
   if (isLoading && !stats && !exams) {
     return (
       <div className="space-y-6 px-1">
-        <div className="h-10 w-64 animate-pulse rounded-xl bg-slate-800/50" />
+        <div className="h-10 w-64 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800/50" />
         <div className="grid gap-4 sm:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-800/50" />
+            <div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800/50" />
           ))}
         </div>
-        <div className="h-64 animate-pulse rounded-2xl bg-slate-800/50" />
+        <div className="h-64 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800/50" />
       </div>
     );
   }
@@ -61,10 +61,10 @@ export function IstatistiklerClient() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             İstatistikler
           </h1>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
             Deneme analizleri ve ilerleme takibi
           </p>
         </div>
@@ -99,7 +99,7 @@ export function IstatistiklerClient() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 rounded-xl bg-slate-800/40 p-1">
+      <div className="flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800/40">
         {([
           { key: "exams" as const, label: "Deneme Analizi" },
           { key: "overview" as const, label: "Haftalık Özet" },
@@ -109,8 +109,8 @@ export function IstatistiklerClient() {
             onClick={() => setActiveTab(key)}
             className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
               activeTab === key
-                ? "bg-slate-700/80 text-white shadow-sm"
-                : "text-slate-500 hover:text-slate-300"
+                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700/80 dark:text-white"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
             {label}
@@ -120,7 +120,7 @@ export function IstatistiklerClient() {
 
       {/* TYT / AYT Filtresi (deneme analizi sekmesinde) */}
       {activeTab === "exams" && (
-        <div className="flex gap-1 rounded-lg bg-slate-800/30 p-0.5">
+        <div className="flex gap-1 rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800/30">
           {([
             { key: "tyt" as const, label: "TYT" },
             { key: "ayt" as const, label: "AYT" },
@@ -130,12 +130,12 @@ export function IstatistiklerClient() {
               onClick={() => setExamFilter(key)}
               className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-all ${
                 examFilter === key
-                  ? "bg-indigo-500/20 text-indigo-300"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               }`}
             >
               {label}
-              <span className="ml-1 text-[10px] text-slate-600">
+              <span className="ml-1 text-[10px] text-slate-400 dark:text-slate-600">
                 ({(exams ?? []).filter((e) => e.exam_type === key).length})
               </span>
             </button>
