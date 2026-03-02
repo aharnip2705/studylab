@@ -5,6 +5,7 @@ import {
   AYT_TOPICS,
   getTopicsByExam,
 } from "@/lib/curriculum";
+import { getUserResources } from "@/lib/actions/plans";
 
 const PROGRAM_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -15,7 +16,7 @@ export default async function KonuTakipPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [subjectsRes, completionsRes] = await Promise.all([
+  const [subjectsRes, completionsRes, userResources] = await Promise.all([
     supabase
       .from("subjects")
       .select("id, name")
@@ -25,6 +26,7 @@ export default async function KonuTakipPage() {
       .from("topic_completions")
       .select("subject_id, topic_name, exam_type")
       .eq("user_id", user.id),
+    getUserResources(),
   ]);
 
   const subjects = subjectsRes.data ?? [];
@@ -46,6 +48,7 @@ export default async function KonuTakipPage() {
       completions={completions}
       tytTopics={getTopicsByExam("tyt")}
       aytTopics={getTopicsByExam("ayt")}
+      initialUserResources={userResources}
     />
   );
 }
