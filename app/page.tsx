@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
-    <main className="relative min-h-screen overflow-hidden">
+    <main className="relative h-screen max-h-[100dvh] overflow-hidden">
       {/* Animated gradient background */}
       <div className="animated-gradient-bg absolute inset-0" />
 
@@ -23,25 +23,25 @@ export default function HomePage() {
         style={{ animation: "float 7s ease-in-out infinite 1s" }}
       />
 
-      <div className="relative flex min-h-screen flex-col items-center justify-center px-6 py-16">
-        {/* Countdown - En üstte */}
-        <div className="mb-12">
+      <div className="relative flex h-screen max-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 py-4">
+        {/* Countdown */}
+        <div className="shrink-0 pb-3">
           <Countdown />
         </div>
 
         {/* Ana başlık */}
-        <div className="mb-12 max-w-3xl text-center">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-5xl md:text-6xl">
+        <div className="shrink-0 pb-4 max-w-3xl text-center">
+          <h1 className="mb-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl md:text-5xl">
             YKS Ders Paneli
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-slate-600 dark:text-slate-400 sm:text-xl">
+          <p className="mx-auto max-w-2xl text-base text-slate-600 dark:text-slate-400 sm:text-lg">
             YKS&apos;ye hazırlanan öğrenciler için ders planlama, video dersler ve
             ilerleme takibi. Haftalık planlarınızı oluşturun, hedeflerinize ulaşın.
           </p>
         </div>
 
         {/* CTA Buttons */}
-        <div className="mb-16 flex flex-wrap justify-center gap-4">
+        <div className="shrink-0 pb-4 flex flex-wrap justify-center gap-4">
           <Link href="/login">
             <Button size="lg" className="shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105">
               Giriş Yap
@@ -54,8 +54,8 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Özellik kartları */}
-        <div className="w-full max-w-5xl animate-fade-in-up" style={{ animationDelay: "450ms", animationFillMode: "forwards" }}>
+        {/* Özellik kartları - sayfaya sığacak şekilde */}
+        <div className="flex-1 min-h-0 w-full max-w-5xl flex items-center justify-center">
           <FeatureCards />
         </div>
       </div>

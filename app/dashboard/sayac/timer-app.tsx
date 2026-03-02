@@ -101,7 +101,19 @@ export function TimerApp() {
   const laps = state.laps;
 
   const { resolvedTheme } = useTheme();
-  const isLight = resolvedTheme === "light";
+  const [bgLight, setBgLight] = useState(false);
+  useEffect(() => {
+    const update = () => setBgLight(document.documentElement.getAttribute("data-bg-light") === "true");
+    update();
+    const obs = new MutationObserver(update);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-bg-light", "data-bg-dark"] });
+    window.addEventListener("bg-settings-change", update);
+    return () => {
+      obs.disconnect();
+      window.removeEventListener("bg-settings-change", update);
+    };
+  }, []);
+  const isLight = resolvedTheme === "light" || bgLight;
   const theme = THEMES.find((t) => t.id === themeId) ?? THEMES[1];
   const isCustom = themeId === "custom";
   const customIsLight = isCustom && hexIsLight(customColor);

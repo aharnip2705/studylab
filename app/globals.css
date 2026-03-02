@@ -219,12 +219,15 @@ html[data-bg-dark="true"] .dashboard-main-bg main [class*="bg-amber-50"] .text-a
 }
 
 /* Açık/beyaz arka plan: metin kontrastı - okunaklı koyu yazı */
+html[data-bg-light="true"] .dashboard-main-bg main .text-slate-300,
+html[data-bg-light="true"] .dashboard-main-bg main .text-slate-400,
 html[data-bg-light="true"] .dashboard-main-bg main .text-slate-500,
 html[data-bg-light="true"] .dashboard-main-bg main .text-slate-600 {
   color: rgb(51, 65, 85) !important;
 }
 html[data-bg-light="true"] .dashboard-main-bg main .text-slate-900,
-html[data-bg-light="true"] .dashboard-main-bg main .text-slate-800 {
+html[data-bg-light="true"] .dashboard-main-bg main .text-slate-800,
+html[data-bg-light="true"] .dashboard-main-bg main .text-white {
   color: rgb(15, 23, 42) !important;
 }
 html[data-bg-light="true"] .dashboard-main-bg main input,
@@ -236,8 +239,13 @@ html[data-bg-light="true"] .dashboard-main-bg main [class*="bg-white"] {
 html[data-bg-light="true"] .dashboard-main-bg main input::placeholder {
   color: rgb(100, 116, 139) !important;
 }
-html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-400 {
+html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-400,
+html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-300,
+html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-white {
   color: rgb(51, 65, 85) !important;
+}
+html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-200 {
+  color: rgb(15, 23, 42) !important;
 }
 html[data-bg-light="true"] .dashboard-main-bg main label {
   color: rgb(71, 85, 105) !important;

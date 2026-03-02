@@ -183,8 +183,11 @@ function LoginForm() {
 
       <a
         href="mailto:iletisim@studylab.tr"
-        className="fixed bottom-5 right-6 text-xs text-slate-400 opacity-70 transition-opacity duration-300 hover:opacity-100 dark:text-slate-500"
+        className="fixed bottom-5 right-6 flex items-center gap-2 rounded-lg border border-slate-200 bg-white/90 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all duration-300 hover:bg-white hover:shadow-md dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800"
       >
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+        </svg>
         iletisim@studylab.tr
       </a>
     </main>
