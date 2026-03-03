@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getIsAdmin } from "@/lib/actions/profile";
 import { revalidatePath } from "next/cache";
 
-const PROGRAM_ID = "11111111-1111-1111-1111-111111111111";
+const YKS_PROGRAM_ID = "11111111-1111-1111-1111-111111111111";
+/** @deprecated Kullanılmamalı - sadece geriye uyumluluk için */
+const PROGRAM_ID = YKS_PROGRAM_ID;
 const PUBLISHER_LOGOS_BUCKET = "publisher-logos";
 const MAX_SIZE = 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
@@ -17,23 +19,23 @@ function isBucketNotFound(err: { message?: string } | null): boolean {
   return msg.includes("bucket") && (msg.includes("not found") || msg.includes("bulunamadı"));
 }
 
-export async function getAdminPublishers() {
+export async function getAdminPublishers(programId = PROGRAM_ID) {
   if (!(await getIsAdmin())) return [];
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("publishers")
     .select("id, name, sort_order, logo_url")
-    .eq("program_id", PROGRAM_ID)
+    .eq("program_id", programId)
     .order("sort_order")
     .order("name");
   return data ?? [];
 }
 
-export async function addPublisher(name: string) {
+export async function addPublisher(name: string, programId = PROGRAM_ID) {
   if (!(await getIsAdmin())) return { error: "Yetkiniz yok" };
   const supabase = createAdminClient();
   const { error } = await supabase.from("publishers").insert({
-    program_id: PROGRAM_ID,
+    program_id: programId,
     name: name.trim(),
     sort_order: 0,
   });
@@ -110,20 +112,20 @@ export async function deletePublisher(id: string) {
   return { success: true };
 }
 
-export async function getAdminResources() {
+export async function getAdminResources(programId = PROGRAM_ID) {
   if (!(await getIsAdmin())) return [];
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("resources")
     .select("id, name, resource_type, icon_url, publisher_id, subject_id, publishers(id, name), subjects(id, name)")
-    .eq("program_id", PROGRAM_ID)
+    .eq("program_id", programId)
     .order("resource_type")
     .order("name");
   if (error) {
     const { data: fallbackData } = await supabase
       .from("resources")
       .select("id, name, resource_type, icon_url, publisher_id, publishers(id, name)")
-      .eq("program_id", PROGRAM_ID)
+      .eq("program_id", programId)
       .order("resource_type")
       .order("name");
     return (fallbackData ?? []).map((r) => ({ ...r, subject_id: null, subjects: null }));
@@ -137,13 +139,14 @@ export async function addResource(formData: {
   publisher_id: string;
   icon_url?: string;
   subject_id?: string | null;
+  program_id?: string;
 }) {
   if (!(await getIsAdmin())) return { error: "Yetkiniz yok" };
   const supabase = createAdminClient();
   const payload: Record<string, unknown> = {
     name: formData.name.trim(),
     resource_type: formData.resource_type,
-    program_id: PROGRAM_ID,
+    program_id: formData.program_id ?? PROGRAM_ID,
     publisher_id: formData.publisher_id || null,
     icon_url: formData.icon_url?.trim() || null,
   };

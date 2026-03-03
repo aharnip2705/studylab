@@ -9,7 +9,7 @@ export async function getAdminChannels() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("youtube_channels")
-    .select("id, channel_id, channel_name, subject_id, is_active, subjects(name)")
+    .select("id, channel_id, channel_name, subject_id, exam_type, is_active, subjects(name)")
     .order("channel_name");
   return data ?? [];
 }
@@ -18,6 +18,7 @@ export async function addChannel(formData: {
   channel_id: string;
   channel_name: string;
   subject_id?: string;
+  exam_type?: string;
 }) {
   if (!(await getIsAdmin())) return { error: "Yetkiniz yok" };
   const supabase = await createClient();
@@ -25,6 +26,7 @@ export async function addChannel(formData: {
     channel_id: formData.channel_id.trim(),
     channel_name: formData.channel_name.trim(),
     subject_id: formData.subject_id?.trim() || null,
+    exam_type: formData.exam_type?.trim() || null,
   });
   if (error) return { error: error.message };
   revalidatePath("/dashboard/admin/kanallar");
@@ -33,7 +35,7 @@ export async function addChannel(formData: {
 
 export async function updateChannel(
   id: string,
-  updates: Partial<{ channel_id: string; channel_name: string; subject_id: string; is_active: boolean }>
+  updates: Partial<{ channel_id: string; channel_name: string; subject_id: string; exam_type: string | null; is_active: boolean }>
 ) {
   if (!(await getIsAdmin())) return { error: "Yetkiniz yok" };
   const supabase = await createClient();
@@ -42,6 +44,7 @@ export async function updateChannel(
   if (updates.channel_name !== undefined) payload.channel_name = updates.channel_name.trim();
   if (updates.subject_id !== undefined) payload.subject_id = updates.subject_id || null;
   if (updates.is_active !== undefined) payload.is_active = updates.is_active;
+  if (updates.exam_type !== undefined) payload.exam_type = updates.exam_type || null;
   const { error } = await supabase.from("youtube_channels").update(payload).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/admin/kanallar");

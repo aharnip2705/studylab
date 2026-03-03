@@ -5,6 +5,13 @@ import { addChannel } from "@/lib/actions/admin-channels";
 
 type Subject = { id: string; name: string; slug: string };
 
+const EXAM_TYPES = [
+  { value: "", label: "Tüm Sınavlar (herkese görünür)" },
+  { value: "YKS", label: "YKS" },
+  { value: "LGS", label: "LGS" },
+  { value: "KPSS", label: "KPSS" },
+];
+
 export function AdminChannelForm({ subjects }: { subjects: Subject[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +28,7 @@ export function AdminChannelForm({ subjects }: { subjects: Subject[] }) {
       channel_id: (fd.get("channel_id") as string) || "",
       channel_name: (fd.get("channel_name") as string) || "",
       subject_id: (fd.get("subject_id") as string) || undefined,
+      exam_type: (fd.get("exam_type") as string) || undefined,
     });
     setLoading(false);
     if (res.error) {
@@ -71,6 +79,22 @@ export function AdminChannelForm({ subjects }: { subjects: Subject[] }) {
             required
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
           />
+        </div>
+        <div>
+          <label htmlFor="exam_type" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Sınav Tipi
+          </label>
+          <select
+            id="exam_type"
+            name="exam_type"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+          >
+            {EXAM_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label htmlFor="subject_id" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">

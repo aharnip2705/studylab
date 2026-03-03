@@ -9,8 +9,21 @@ type Channel = {
   channel_id: string;
   channel_name: string;
   subject_id: string | null;
+  exam_type: string | null;
   is_active: boolean;
   subjects: { name: string } | { name: string }[] | null;
+};
+
+const EXAM_TYPE_LABELS: Record<string, string> = {
+  YKS: "YKS",
+  LGS: "LGS",
+  KPSS: "KPSS",
+};
+
+const EXAM_TYPE_COLORS: Record<string, string> = {
+  YKS: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
+  LGS: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  KPSS: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
 };
 
 export function AdminChannelList({
@@ -22,6 +35,8 @@ export function AdminChannelList({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editExamType, setEditExamType] = useState<string>("");
 
   async function handleToggleActive(c: Channel) {
     setLoading(true);
@@ -38,6 +53,15 @@ export function AdminChannelList({
     const res = await deleteChannel(id);
     setLoading(false);
     if (res.error) setError(res.error);
+  }
+
+  async function handleSaveExamType(c: Channel) {
+    setLoading(true);
+    setError(null);
+    const res = await updateChannel(c.id, { exam_type: editExamType || null });
+    setLoading(false);
+    if (res.error) setError(res.error);
+    else setEditId(null);
   }
 
   if (channels.length === 0) {
@@ -62,6 +86,7 @@ export function AdminChannelList({
               <th className="p-3 font-medium">Kanal Adı</th>
               <th className="p-3 font-medium">Kanal ID</th>
               <th className="p-3 font-medium">Ders</th>
+              <th className="p-3 font-medium">Sınav</th>
               <th className="p-3 font-medium">Durum</th>
               <th className="p-3 font-medium">İşlem</th>
             </tr>
@@ -80,6 +105,63 @@ export function AdminChannelList({
                   {Array.isArray(c.subjects)
                     ? c.subjects[0]?.name ?? "—"
                     : c.subjects?.name ?? "—"}
+                </td>
+                <td className="p-3">
+                  {editId === c.id ? (
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={editExamType}
+                        onChange={(e) => setEditExamType(e.target.value)}
+                        className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                      >
+                        <option value="">Tümü</option>
+                        <option value="YKS">YKS</option>
+                        <option value="LGS">LGS</option>
+                        <option value="KPSS">KPSS</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveExamType(c)}
+                        disabled={loading}
+                        className="text-xs text-green-600 hover:underline dark:text-green-400"
+                      >
+                        Kaydet
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditId(null)}
+                        className="text-xs text-slate-500 hover:underline"
+                      >
+                        İptal
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditId(c.id);
+                        setEditExamType(c.exam_type ?? "");
+                      }}
+                      className="group flex items-center gap-1"
+                    >
+                      {c.exam_type ? (
+                        <span
+                          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                            EXAM_TYPE_COLORS[c.exam_type] ?? ""
+                          }`}
+                        >
+                          {EXAM_TYPE_LABELS[c.exam_type] ?? c.exam_type}
+                        </span>
+                      ) : (
+                        <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+                          Tümü
+                        </span>
+                      )}
+                      <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        düzenle
+                      </span>
+                    </button>
+                  )}
                 </td>
                 <td className="p-3">
                   <span

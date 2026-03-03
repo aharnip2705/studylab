@@ -46,7 +46,7 @@ function findPublisherByName(resourceName: string, publishers: Publisher[]): Pub
   return null;
 }
 
-export function AdminResourceForm({ publishers, subjects = [] }: { publishers: Publisher[]; subjects?: Subject[] }) {
+export function AdminResourceForm({ publishers, subjects = [], programId }: { publishers: Publisher[]; subjects?: Subject[]; programId?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -94,6 +94,7 @@ export function AdminResourceForm({ publishers, subjects = [] }: { publishers: P
       publisher_id,
       icon_url,
       subject_id: selectedSubjectId || null,
+      program_id: programId,
     });
     setLoading(false);
     if (res.error) setError(res.error);

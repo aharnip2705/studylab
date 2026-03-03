@@ -183,6 +183,32 @@ export async function updateExamType(examType: ExamType) {
   }
 }
 
+/** Kullanıcının sınav tipine göre program UUID'sini döndürür */
+export async function getCurrentUserProgramId(): Promise<string> {
+  const YKS_PROGRAM_ID = "11111111-1111-1111-1111-111111111111";
+  const KPSS_PROGRAM_ID = "22222222-2222-2222-2222-222222222222";
+  const LGS_PROGRAM_ID = "33333333-3333-3333-3333-333333333333";
+
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return YKS_PROGRAM_ID;
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("exam_type")
+      .eq("id", user.id)
+      .single();
+
+    const examType = (data as { exam_type?: string } | null)?.exam_type;
+    if (examType === "KPSS") return KPSS_PROGRAM_ID;
+    if (examType === "LGS") return LGS_PROGRAM_ID;
+    return YKS_PROGRAM_ID;
+  } catch {
+    return YKS_PROGRAM_ID;
+  }
+}
+
 export async function getIsAdmin(): Promise<boolean> {
   try {
     const supabase = await createClient();

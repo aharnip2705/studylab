@@ -36,7 +36,7 @@ const plans = [
     name: "Standart Paket",
     description: "Temel araçlar, AI olmadan",
     icon: Zap,
-    price: "₺30",
+    price: "₺99",
     period: "/ay",
     features: [
       "AI'sız Temel Araçlar: Ders/konu takibi, Pomodoro sayaç ve temel kaynak listesi.",
@@ -53,7 +53,7 @@ const plans = [
     name: "Pro Paket",
     description: "AI Koç ile sınırsız potansiyel",
     icon: Crown,
-    price: "₺34,99",
+    price: "₺299",
     period: "/ay",
     features: [
       "🌟 Sürekli AI Deneme Analizi: Deneme verilerine göre potansiyel net artış alanlarını ve yorumlarını AI Koç'unla keşfet.",

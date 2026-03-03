@@ -9,6 +9,7 @@ import { TrialBadge } from "./trial-badge";
 import { useSidebar } from "./sidebar-provider";
 import { StudyLabLogo } from "@/components/study-lab-logo";
 import { useSubscription } from "@/lib/swr/hooks";
+import { getTrialDaysLeft } from "@/lib/subscription-utils";
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -33,7 +34,20 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   const greeting = getGreeting();
   const { setMobileOpen } = useSidebar();
   const { data: subscription } = useSubscription();
+
+  const sub = subscription?.subscription;
+  const isAdmin = subscription?.isAdmin ?? false;
   const proActive = subscription?.proActive ?? false;
+  const plan = sub?.plan ?? "free";
+
+  const isTrial = plan === "pro_trial" || plan === "standard_trial";
+  const isStandard = plan === "standard" || plan === "standard_trial";
+  const isPro = proActive;
+
+  const trialDaysLeft = isTrial ? getTrialDaysLeft(sub ?? null) : null;
+
+  const showProBadge = isPro || isAdmin;
+  const showStandardBadge = !showProBadge && isStandard;
 
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/70 px-6 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/60">
@@ -46,7 +60,13 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <StudyLabLogo href="/dashboard" showProBadge={proActive} size="md" />
+        <StudyLabLogo
+          href="/dashboard"
+          showProBadge={showProBadge}
+          showStandardBadge={showStandardBadge}
+          trialDaysLeft={isTrial ? trialDaysLeft : null}
+          size="md"
+        />
         <span className="hidden sm:inline text-sm text-slate-600 dark:text-slate-500">
           {greeting}, {firstName}
         </span>

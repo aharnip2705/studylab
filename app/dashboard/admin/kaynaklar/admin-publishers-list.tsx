@@ -6,7 +6,7 @@ import { Upload, Image } from "lucide-react";
 
 type Publisher = { id: string; name: string; sort_order?: number; logo_url?: string | null };
 
-export function AdminPublishersList({ publishers }: { publishers: Publisher[] }) {
+export function AdminPublishersList({ publishers, programId }: { publishers: Publisher[]; programId?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export function AdminPublishersList({ publishers }: { publishers: Publisher[] })
     if (!newName.trim()) return;
     setLoading(true);
     setError(null);
-    const res = await addPublisher(newName.trim());
+    const res = await addPublisher(newName.trim(), programId);
     setLoading(false);
     if (res.error) setError(res.error);
     else setNewName("");

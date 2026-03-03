@@ -15,14 +15,14 @@ function isBucketNotFound(err: { message?: string } | null): boolean {
   return msg.includes("bucket") && (msg.includes("not found") || msg.includes("bulunamadı"));
 }
 
-export async function getAdminSubjects() {
+export async function getAdminSubjects(programId = PROGRAM_ID) {
   noStore();
   if (!(await getIsAdmin())) return [];
   const supabase = await createClient();
   const { data } = await supabase
     .from("subjects")
     .select("id, name, slug, icon_url")
-    .eq("program_id", PROGRAM_ID)
+    .eq("program_id", programId)
     .order("sort_order");
   return data ?? [];
 }
