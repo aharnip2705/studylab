@@ -14,7 +14,10 @@ export const metadata: Metadata = {
   title: "StudyLab",
   description: "YKS'ye hazırlanan öğrenciler için akıllı ders planlama ve takip paneli",
   icons: {
-    icon: "/icon.jpg",
+    icon: [
+      { url: "/icon.png?v=3", type: "image/png", sizes: "32x32" },
+      { url: "/icon.png?v=3", type: "image/png", sizes: "any" },
+    ],
   },
 };
 
