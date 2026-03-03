@@ -168,12 +168,12 @@ export function ExamEntryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="mx-4 flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
+      <div className="mx-4 flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
         <div className="flex shrink-0 items-center justify-between p-6 pb-0">
-          <h2 className="text-lg font-semibold text-white">Deneme Sonucu Ekle</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Deneme Sonucu Ekle</h2>
           <button
             onClick={() => { resetForm(); onClose(); }}
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-white"
           >
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -184,7 +184,7 @@ export function ExamEntryModal({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden pt-4">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4 pr-5">
           {/* Exam Type Toggle */}
-          <div className="flex gap-2 rounded-xl bg-slate-800/60 p-1">
+          <div className="flex gap-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-800/60">
             {(["tyt", "ayt"] as const).map((t) => (
               <button
                 key={t}
@@ -193,7 +193,7 @@ export function ExamEntryModal({
                 className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
                   examType === t
                     ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/25"
-                    : "text-slate-400 hover:text-white"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
                 {t.toUpperCase()}
@@ -203,7 +203,7 @@ export function ExamEntryModal({
 
           {/* Exam Date */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-400">Deneme Tarihi</label>
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Deneme Tarihi</label>
             <input
               type="date"
               value={examDate}
@@ -214,7 +214,7 @@ export function ExamEntryModal({
                 return d.toISOString().slice(0, 10);
               })()}
               max={new Date().toISOString().slice(0, 10)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white"
             />
           </div>
 
@@ -224,40 +224,40 @@ export function ExamEntryModal({
             placeholder="Deneme adı (örn: Palme TYT-3)"
             value={examName}
             onChange={(e) => setExamName(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+            className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white dark:placeholder-slate-500"
           />
 
           {/* Core Inputs */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">Doğru</label>
+              <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Doğru</label>
               <input
                 type="number"
                 min={0}
                 max={config.totalQuestions}
                 value={totalCorrect}
                 onChange={(e) => setTotalCorrect(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white"
                 placeholder="0"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">Yanlış</label>
+              <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Yanlış</label>
               <input
                 type="number"
                 min={0}
                 max={config.totalQuestions}
                 value={totalWrong}
                 onChange={(e) => setTotalWrong(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-rose-500 focus:ring-1 focus:ring-rose-500/30"
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-rose-500 focus:ring-1 focus:ring-rose-500/30 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white"
                 placeholder="0"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-400">
-              Süre (dk) <span className="text-slate-600">varsayılan {defaultTime}</span>
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+              Süre (dk) <span className="text-slate-400 dark:text-slate-600">varsayılan {defaultTime}</span>
             </label>
             <input
               type="number"
@@ -265,16 +265,16 @@ export function ExamEntryModal({
               value={totalTime}
               onChange={(e) => setTotalTime(e.target.value)}
               placeholder={String(defaultTime)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white"
             />
-            <p className="mt-1 text-xs text-slate-600">Net hedefini Ayarlar sayfasından belirleyebilirsiniz.</p>
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-600">Net hedefini Ayarlar sayfasından belirleyebilirsiniz.</p>
           </div>
 
           {/* Subject Details Toggle */}
           <button
             type="button"
             onClick={() => setShowDetails(!showDetails)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700 py-2.5 text-xs font-medium text-slate-400 transition-colors hover:border-indigo-500/50 hover:text-indigo-400"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 py-2.5 text-xs font-medium text-slate-500 transition-colors hover:border-indigo-500/50 hover:text-indigo-500 dark:border-slate-700 dark:text-slate-400 dark:hover:text-indigo-400"
           >
             <svg
               width="16"
@@ -291,13 +291,13 @@ export function ExamEntryModal({
           </button>
 
           {showDetails && (
-            <div className="space-y-2 rounded-xl border border-slate-700/50 bg-slate-800/30 p-3">
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700/50 dark:bg-slate-800/30">
               {subjects.map((s) => (
                 <div key={s} className="flex items-center gap-3">
-                  <span className="w-28 shrink-0 text-xs font-medium text-slate-300">
+                  <span className="w-28 shrink-0 text-xs font-medium text-slate-700 dark:text-slate-300">
                     {s}
                     {(config as { subjectQuestions?: Record<string, number> }).subjectQuestions?.[s] != null && (
-                      <span className="ml-1 font-normal text-slate-600">
+                      <span className="ml-1 font-normal text-slate-400 dark:text-slate-600">
                         ({(config as { subjectQuestions?: Record<string, number> }).subjectQuestions![s]} soru)
                       </span>
                     )}
@@ -309,7 +309,7 @@ export function ExamEntryModal({
                     placeholder="D"
                     value={subjectDetails[s]?.correct ?? ""}
                     onChange={(e) => handleSubjectChange(s, "correct", e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-emerald-400 outline-none focus:border-emerald-500"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-emerald-600 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-emerald-400"
                   />
                   <input
                     type="number"
@@ -318,7 +318,7 @@ export function ExamEntryModal({
                     placeholder="Y"
                     value={subjectDetails[s]?.wrong ?? ""}
                     onChange={(e) => handleSubjectChange(s, "wrong", e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-rose-400 outline-none focus:border-rose-500"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-rose-600 outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-rose-400"
                   />
                 </div>
               ))}
@@ -330,7 +330,7 @@ export function ExamEntryModal({
           )}
           </div>
 
-          <div className="shrink-0 border-t border-slate-800 p-4">
+          <div className="shrink-0 border-t border-slate-200 p-4 dark:border-slate-800">
           <button
             type="submit"
             disabled={saving}

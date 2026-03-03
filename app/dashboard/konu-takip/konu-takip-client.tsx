@@ -423,14 +423,12 @@ function KaynaklarimTab({
     );
   }, [publishers, dersResources, selectedSubjectId, selectedSubject?.name]);
 
-  // Yayınevi + derse göre kitaplar (ders kaynakları derse göre filtrelenir; deneme her zaman gösterilir)
+  // Yayınevi + derse göre kitaplar — yalnızca seçilen derse ait kaynaklar
   const resourcesForPublisherAndSubject = useMemo(() => {
     if (!selectedPublisherId) return [];
     const fromPublisher = [...dersResources, ...denemeResources].filter((r) => r.publisher_id === selectedPublisherId);
-    const isDeneme = (r: Resource) => denemeResources.some((dr) => dr.id === r.id);
     if (!selectedSubjectId || !selectedSubject?.name) return fromPublisher;
     return fromPublisher.filter((r) => {
-      if (isDeneme(r)) return true;
       if (r.subject_id) return r.subject_id === selectedSubjectId;
       return resourceMatchesSubject(r.name ?? "", selectedSubject.name);
     });

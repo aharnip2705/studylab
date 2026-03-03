@@ -76,7 +76,7 @@ function ApplyPlanButton({ plan }: { plan: AiPlanDay[] }) {
               type="button"
               onClick={() => setConfirming(false)}
               disabled={status === "loading"}
-              className="rounded-lg bg-slate-700/50 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-300"
+              className="rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 dark:bg-slate-700/50 dark:text-slate-400 dark:hover:text-slate-300"
             >
               İptal
             </button>
@@ -223,7 +223,7 @@ export function AiInsightBubble({ exams, isPro, studyField }: AiInsightBubblePro
   if (exams.length === 0) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/80 via-slate-900 to-indigo-950/80 p-5">
+    <div className="relative overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-indigo-50 p-5 dark:border-indigo-500/20 dark:from-indigo-950/80 dark:via-slate-900 dark:to-indigo-950/80">
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-indigo-500/5 blur-2xl" />
       <div className="absolute -left-4 -bottom-4 h-24 w-24 rounded-full bg-indigo-500/5 blur-2xl" />
 
@@ -259,7 +259,7 @@ export function AiInsightBubble({ exams, isPro, studyField }: AiInsightBubblePro
               <span className="text-xs text-slate-500">Analiz ediliyor...</span>
             </div>
           ) : insight ? (
-            <p className="text-sm leading-relaxed text-slate-300">{insight}</p>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{insight}</p>
           ) : (
             <div className="space-y-1">
               <p className="text-sm text-slate-500">Analiz yüklenemedi.</p>
@@ -275,7 +275,7 @@ export function AiInsightBubble({ exams, isPro, studyField }: AiInsightBubblePro
 
           {/* Konuşma geçmişi */}
           {messages.length > 0 && (
-            <div className="mt-4 space-y-2 border-t border-slate-700/50 pt-4">
+            <div className="mt-4 space-y-2 border-t border-slate-200 pt-4 dark:border-slate-700/50">
               {messages.map((msg, i) => (
                 <div
                   key={i}
@@ -284,8 +284,8 @@ export function AiInsightBubble({ exams, isPro, studyField }: AiInsightBubblePro
                   <span
                     className={`inline-block max-w-[90%] whitespace-pre-wrap break-words rounded-xl px-3 py-1.5 ${
                       msg.role === "user"
-                        ? "bg-indigo-500/20 text-indigo-200"
-                        : "bg-slate-700/50 text-slate-300"
+                        ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200"
+                        : "bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-slate-300"
                     }`}
                   >
                     {msg.content}
@@ -306,7 +306,7 @@ export function AiInsightBubble({ exams, isPro, studyField }: AiInsightBubblePro
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendChatMessage()}
               placeholder="Koça bir şey sor..."
-              className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-indigo-500"
+              className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none transition-colors focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white dark:placeholder-slate-500"
               disabled={chatLoading}
             />
             <button

@@ -270,11 +270,11 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col"
-              style={{ background: "rgba(18, 18, 28, 0.97)", backdropFilter: "blur(20px)" }}
+              className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white dark:border-slate-800 dark:bg-[rgba(18,18,28,0.97)]"
+              style={{ backdropFilter: "blur(20px)" }}
             >
               {/* Header */}
-              <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
+              <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
                 <div className="flex items-center gap-3">
                   <div
                     className="flex h-9 w-9 items-center justify-center rounded-xl"
@@ -283,14 +283,14 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                     <Brain className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="font-bold text-white">AI Mentör</h2>
-                    <p className="text-xs text-slate-400">StudyLab Koçunuz</p>
+                    <h2 className="font-bold text-slate-900 dark:text-white">AI Mentör</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">StudyLab Koçunuz</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                  className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-white"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -302,15 +302,15 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                 {(latestTytExam || latestAytExam) && (
                   <div className="mb-4 grid grid-cols-2 gap-3">
                     {latestTytExam && (
-                      <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-3">
-                        <p className="text-xs font-semibold text-indigo-400">Son TYT</p>
-                        <p className="mt-1 text-2xl font-bold text-white">
+                      <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 dark:border-indigo-500/20 dark:bg-indigo-500/10">
+                        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Son TYT</p>
+                        <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
                           {(latestTytExam.total_correct - latestTytExam.total_wrong * 0.25).toFixed(1)}
                         </p>
-                        <p className="text-xs text-slate-400">net</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">net</p>
                         {tytTargetNet != null && (
                           <div className="mt-2">
-                            <div className="mb-1 flex justify-between text-[10px] text-slate-400">
+                            <div className="mb-1 flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
                               <span>Hedef: {tytTargetNet % 1 === 0 ? Math.round(tytTargetNet) : tytTargetNet.toFixed(1)}</span>
                               <span>
                                 {Math.min(
@@ -323,7 +323,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                                 )}%
                               </span>
                             </div>
-                            <div className="h-1.5 w-full rounded-full bg-white/10">
+                            <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-white/10">
                               <div
                                 className="h-1.5 rounded-full bg-indigo-500 transition-all"
                                 style={{
@@ -336,15 +336,15 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                       </div>
                     )}
                     {latestAytExam && (
-                      <div className="rounded-xl border border-purple-500/20 bg-purple-500/10 p-3">
-                        <p className="text-xs font-semibold text-purple-400">Son AYT</p>
-                        <p className="mt-1 text-2xl font-bold text-white">
+                      <div className="rounded-xl border border-purple-200 bg-purple-50 p-3 dark:border-purple-500/20 dark:bg-purple-500/10">
+                        <p className="text-xs font-semibold text-purple-600 dark:text-purple-400">Son AYT</p>
+                        <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
                           {(latestAytExam.total_correct - latestAytExam.total_wrong * 0.25).toFixed(1)}
                         </p>
-                        <p className="text-xs text-slate-400">net</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">net</p>
                         {aytTargetNet != null && (
                           <div className="mt-2">
-                            <div className="mb-1 flex justify-between text-[10px] text-slate-400">
+                            <div className="mb-1 flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
                               <span>Hedef: {aytTargetNet % 1 === 0 ? Math.round(aytTargetNet) : aytTargetNet.toFixed(1)}</span>
                               <span>
                                 {Math.min(
@@ -357,7 +357,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                                 )}%
                               </span>
                             </div>
-                            <div className="h-1.5 w-full rounded-full bg-white/10">
+                            <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-white/10">
                               <div
                                 className="h-1.5 rounded-full bg-purple-500 transition-all"
                                 style={{
@@ -373,10 +373,10 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                 )}
 
                 {/* AI Tavsiye Card */}
-                <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
                   <div className="mb-2 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-400" />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-purple-400">
+                    <Sparkles className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-purple-500 dark:text-purple-400">
                       AI Tavsiye
                     </span>
                   </div>
@@ -392,7 +392,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                       <span className="text-xs text-slate-500">Analiz ediliyor...</span>
                     </div>
                   ) : insight ? (
-                    <p className="text-sm leading-relaxed text-slate-300">{insight}</p>
+                    <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{insight}</p>
                   ) : exams.length === 0 ? (
                     <p className="text-sm text-slate-500">Deneme sonucu ekleyince analiz başlar.</p>
                   ) : (
@@ -435,7 +435,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                             className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                               msg.role === "user"
                                 ? "rounded-br-sm bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
-                                : "rounded-bl-sm bg-white/10 text-slate-200"
+                                : "rounded-bl-sm bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-slate-200"
                             }`}
                           >
                             {displayContent}
@@ -451,7 +451,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                         <div className="mr-2 mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
                           <Brain className="h-3.5 w-3.5 text-white" />
                         </div>
-                        <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm bg-white/10 px-4 py-3">
+                        <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-3 dark:bg-white/10">
                           <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
                           <span className="text-xs text-slate-400">Yazıyor...</span>
                         </div>
@@ -472,7 +472,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                         key={q}
                         type="button"
                         onClick={() => fillInput(q)}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs text-slate-300 transition-colors hover:border-purple-500/30 hover:bg-purple-500/10 hover:text-purple-300"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs text-slate-700 transition-colors hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-purple-500/30 dark:hover:bg-purple-500/10 dark:hover:text-purple-300"
                       >
                         {q}
                       </button>
@@ -482,19 +482,19 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
               </div>
 
               {/* Input */}
-              <div className="shrink-0 border-t border-white/10 px-4 py-3">
+              <div className="shrink-0 border-t border-slate-200 px-4 py-3 dark:border-white/10">
                 {messages.length > 0 && (
                   <button
                     type="button"
                     onClick={clearHistory}
-                    className="mb-2 text-xs text-slate-500 transition-colors hover:text-slate-300"
+                    className="mb-2 text-xs text-slate-500 transition-colors hover:text-slate-700 dark:hover:text-slate-300"
                   >
                     Geçmişi temizle
                   </button>
                 )}
                 <form
                   onSubmit={handleSubmit}
-                  className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 transition-colors focus-within:border-purple-500/50"
+                  className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-colors focus-within:border-purple-500/50 dark:border-white/10 dark:bg-white/5"
                 >
                   <input
                     ref={inputRef}
@@ -503,7 +503,7 @@ export function AiInsightDrawer({ exams, isPro, studyField, tytTargetNet, aytTar
                     onChange={handleInputChange}
                     placeholder="Bir şey sor..."
                     disabled={isLoading}
-                    className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+                    className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                   />
                   <button
                     type="submit"
