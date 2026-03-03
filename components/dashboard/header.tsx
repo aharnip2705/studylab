@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutButton } from "@/components/logout-button";
 import { HeaderCountdownRadial } from "./header-countdown-radial";
+import { TrialBadge } from "./trial-badge";
 import { useSidebar } from "./sidebar-provider";
 import { StudyLabLogo } from "@/components/study-lab-logo";
 import { useSubscription } from "@/lib/swr/hooks";
@@ -51,6 +52,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         </span>
       </div>
       <div className="flex items-center gap-3">
+        <TrialBadge />
         <HeaderCountdownRadial />
         <ThemeToggle />
         <LogoutButton />

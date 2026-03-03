@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  Play,
+  Sparkles,
   Zap,
   Crown,
   Check,
@@ -15,31 +15,34 @@ import { cn } from "@/lib/utils";
 const plans = [
   {
     id: "demo",
-    name: "Demo",
-    description: "Önce deneyin, karar verin",
-    icon: Play,
+    name: "Deneme Sürümü",
+    description: "7 gün ücretsiz Pro deneyimi",
+    icon: Sparkles,
+    price: "₺0",
+    period: "/ay",
     features: [
-      "7 gün ücretsiz deneme",
-      "Tüm özelliklere erişim",
-      "İstediğiniz zaman iptal",
+      "StudyLab'in AI destekli tüm Pro özelliklerini 7 gün boyunca tam kapasiteyle deneyimle.",
+      "AI Koç'un hazırladığı ilk kişiselleştirilmiş haftalık çalışma programını hemen gör.",
+      "Gerçek deneme sınavı analizlerinin potansiyelini bir öğrenci gibi keşfet.",
+      "Hiçbir taahhüt gerekmez, kararını 7 günün sonunda Pro'ya geçerek ver.",
     ],
-    cta: "Demo'yu Başlat",
+    cta: "Denemeyi Başlat",
     href: "/dashboard",
     highlighted: false,
     demo: true,
   },
   {
     id: "standard",
-    name: "Aylık",
-    description: "Esnek abonelik",
+    name: "Standart Paket",
+    description: "Temel araçlar, AI olmadan",
     icon: Zap,
     price: "₺30",
     period: "/ay",
     features: [
-      "Sınırsız planlama",
-      "Video dersler",
-      "İstatistik paneli",
-      "E-posta desteği",
+      "AI'sız Temel Araçlar: Ders/konu takibi, Pomodoro sayaç ve temel kaynak listesi.",
+      "Net İstatistik Paneli: Kendi girdiğin deneme sınavı netlerini görselleştir.",
+      "Haftalık Planlayıcı: Programını AI desteği olmadan, kendin manuel olarak hazırla.",
+      "Sınav Sayaç ve Görev Yönetimi: Temel platform özelliklerini süre sınırı olmadan kullan.",
     ],
     cta: "Başla",
     href: "#",
@@ -47,19 +50,18 @@ const plans = [
   },
   {
     id: "pro",
-    name: "Yıllık",
-    description: "En avantajlı paket",
+    name: "Pro Paket",
+    description: "AI Koç ile sınırsız potansiyel",
     icon: Crown,
-    price: "₺300",
-    period: "/yıl",
-    badge: "2 ay bedava",
+    price: "₺34,99",
+    period: "/ay",
     features: [
-      "Aylık planın tüm özellikleri",
-      "Yıllık %17 indirim (₺30/ay x 10)",
-      "AI Koç desteği",
-      "Öncelikli destek",
+      "🌟 Sürekli AI Deneme Analizi: Deneme verilerine göre potansiyel net artış alanlarını ve yorumlarını AI Koç'unla keşfet.",
+      "AI ile Haftalık Programlama: Mazeretlerine, uyarılarına ve deneme analizlerine göre AI Koç'unla sürekli güncellenen mükemmel bir program hazırla.",
+      "AI Proaktif Uyarılar & Öneriler: AI Koç, deneme analizlerine göre sana sürekli özel önerilerde bulunacak.",
+      "Gelişmiş İstatistik Paneli & Öncelikli Destek: Sadece netleri değil, konu bazlı derin analizleri gör ve öncelikli destek al.",
     ],
-    cta: "Başla",
+    cta: "Pro'ya Geç",
     href: "#",
     highlighted: false,
   },
@@ -76,10 +78,10 @@ function getRemainingDays(endDate: string | null): number | null {
 function getPlanLabel(plan: string): string {
   const map: Record<string, string> = {
     free: "Ücretsiz",
-    standard: "Aylık",
-    pro: "Yıllık (Pro)",
-    standard_trial: "Aylık (Deneme)",
-    pro_trial: "Yıllık (Deneme)",
+    standard: "Standart Paket",
+    pro: "Pro Paket",
+    standard_trial: "Standart (Deneme)",
+    pro_trial: "Pro (Deneme)",
   };
   return map[plan] ?? plan;
 }
@@ -136,13 +138,13 @@ export default async function PlansPage() {
         </div>
 
         <div className="mb-12 text-center">
-          <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">
             Hoş geldin, {displayName}
           </h1>
-          <p className="mt-3 text-lg text-muted-foreground">
+          <p className="mt-3 text-lg text-slate-600 dark:text-slate-400">
             {isActive
               ? "Mevcut planınızı yönetin veya yükseltin"
-              : "Devam etmek için bir plan seçin veya demo ile tanışın"}
+              : "Devam etmek için bir plan seçin veya deneme ile tanışın"}
           </p>
         </div>
 
@@ -166,7 +168,7 @@ export default async function PlansPage() {
                 )}
               >
                 {isTrial ? (
-                  <Play className="h-5 w-5" />
+                  <Sparkles className="h-5 w-5" />
                 ) : (
                   <Check className="h-5 w-5" />
                 )}
@@ -215,14 +217,16 @@ export default async function PlansPage() {
                   "flex flex-col transition-all duration-300 hover:shadow-lg",
                   plan.highlighted &&
                     "border-primary shadow-md ring-2 ring-primary/20",
+                  plan.id === "pro" &&
+                    "border-amber-200 dark:border-amber-800/50",
                   isCurrentPlan && "ring-2 ring-green-500/30 border-green-500/50"
                 )}
               >
-                {(plan.badge || isCurrentPlan) && (
-                  <div className="mx-6 mt-6 flex gap-2">
-                    {plan.badge && (
-                      <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                        {plan.badge}
+                {((plan.id === "pro" && !isCurrentPlan) || isCurrentPlan) && (
+                  <div className="mx-6 mt-6 flex flex-wrap gap-2">
+                    {plan.id === "pro" && !isCurrentPlan && (
+                      <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        En popüler
                       </span>
                     )}
                     {isCurrentPlan && (
@@ -232,27 +236,38 @@ export default async function PlansPage() {
                     )}
                   </div>
                 )}
-                <CardHeader className={cn(!(plan.badge || isCurrentPlan) && "pt-6")}>
+                <CardHeader
+                  className={cn(
+                    !((plan.id === "pro" && !isCurrentPlan) || isCurrentPlan) &&
+                      "pt-6"
+                  )}
+                >
                   <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                  {plan.price && (
-                    <div className="mt-2 flex items-baseline gap-1">
-                      <span className="text-2xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground">{plan.period}</span>
-                    </div>
-                  )}
+                  <CardTitle className="text-xl text-slate-900 dark:text-white">
+                    {plan.name}
+                  </CardTitle>
+                  <CardDescription className="text-slate-600 dark:text-slate-400">
+                    {plan.description}
+                  </CardDescription>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {plan.price}
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                      {plan.period}
+                    </span>
+                  </div>
                 </CardHeader>
                 <CardContent className="flex-1">
-                  <ul className="space-y-3">
+                  <ul className="space-y-4">
                     {plan.features.map((feature) => (
                       <li
                         key={feature}
-                        className="flex items-center gap-2 text-sm"
+                        className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300"
                       >
-                        <Check className="h-4 w-4 shrink-0 text-primary" />
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -284,9 +299,9 @@ export default async function PlansPage() {
           })}
         </div>
 
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          Ödeme sistemi yakında aktif olacak. Şimdilik Demo ile tüm özellikleri
-          ücretsiz deneyebilirsiniz.
+        <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+          Ödeme sistemi yakında aktif olacak. Şimdilik Deneme Sürümü ile tüm Pro
+          özelliklerini ücretsiz deneyebilirsiniz.
         </p>
       </div>
     </main>
