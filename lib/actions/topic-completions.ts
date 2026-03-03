@@ -52,7 +52,7 @@ export async function getTopicCompletionsForCoach(): Promise<{
 export async function toggleTopicCompletion(
   subjectId: string,
   topicName: string,
-  examType: "tyt" | "ayt"
+  examType: "tyt" | "ayt" | "kpss" | "lgs"
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const {

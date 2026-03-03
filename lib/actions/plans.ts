@@ -3,8 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import { filterSubjectsByField } from "@/lib/study-field";
-
-const PROGRAM_ID = "11111111-1111-1111-1111-111111111111";
+import { getCurrentUserProgramId } from "@/lib/actions/profile";
 
 /** Verilen tarihin hafta başı (Pazartesi) YYYY-MM-DD olarak */
 function getWeekStart(date: Date): string {
@@ -24,6 +23,7 @@ export async function getOrCreateWeeklyPlan() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { plan: null, tasks: [] };
 
+  const programId = await getCurrentUserProgramId();
   const weekStart = getWeekStart(new Date());
 
   let { data: plan } = await supabase
@@ -36,7 +36,7 @@ export async function getOrCreateWeeklyPlan() {
   if (!plan) {
     const { data: newPlan, error } = await supabase
       .from("weekly_plans")
-      .insert({ user_id: user.id, program_id: PROGRAM_ID, week_start_date: weekStart })
+      .insert({ user_id: user.id, program_id: programId, week_start_date: weekStart })
       .select()
       .single();
     if (error) return { plan: null, tasks: [] };
@@ -164,6 +164,7 @@ export async function restoreWeeklyPlan(sourceWeekStart: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Oturum açmanız gerekiyor" };
 
+  const programId = await getCurrentUserProgramId();
   const currentWeekStart = getWeekStart(new Date());
   if (sourceWeekStart === currentWeekStart) return { error: "Zaten mevcut haftadasınız" };
 
@@ -193,7 +194,7 @@ export async function restoreWeeklyPlan(sourceWeekStart: string) {
   if (!currentPlan) {
     const { data: newPlan, error } = await supabase
       .from("weekly_plans")
-      .insert({ user_id: user.id, program_id: PROGRAM_ID, week_start_date: currentWeekStart })
+      .insert({ user_id: user.id, program_id: programId, week_start_date: currentWeekStart })
       .select("id")
       .single();
     if (error) return { error: error.message };
@@ -230,6 +231,7 @@ export async function restoreWeeklyPlan(sourceWeekStart: string) {
 
 export async function getSubjects() {
   const supabase = await createClient();
+  const programId = await getCurrentUserProgramId();
   const { data: { user } } = await supabase.auth.getUser();
   let studyField: string | null = null;
   try {
@@ -248,7 +250,7 @@ export async function getSubjects() {
   const { data } = await supabase
     .from("subjects")
     .select("*")
-    .eq("program_id", PROGRAM_ID)
+    .eq("program_id", programId)
     .order("sort_order");
   const all = data ?? [];
   return filterSubjectsByField(all, studyField as "esit_agirlik" | "sayisal" | "sozel" | "dil" | "tyt" | null);
@@ -256,10 +258,11 @@ export async function getSubjects() {
 
 export async function getPublishers() {
   const supabase = await createClient();
+  const programId = await getCurrentUserProgramId();
   const { data } = await supabase
     .from("publishers")
     .select("id, name, sort_order, logo_url")
-    .eq("program_id", PROGRAM_ID)
+    .eq("program_id", programId)
     .order("sort_order")
     .order("name");
   return data ?? [];
@@ -267,21 +270,21 @@ export async function getPublishers() {
 
 export async function getResources(type: "ders" | "deneme" = "ders") {
   const supabase = await createClient();
+  const programId = await getCurrentUserProgramId();
   const types = type === "deneme"
     ? ["deneme_sinavi"]
     : ["soru_bankasi", "video_ders_kitabi", "diger"];
   const { data, error } = await supabase
     .from("resources")
     .select("id, name, icon_url, publisher_id, subject_id")
-    .eq("program_id", PROGRAM_ID)
+    .eq("program_id", programId)
     .in("resource_type", types)
     .order("name");
   if (error) {
-    // subject_id column may not exist yet — fallback without it
     const { data: fallback } = await supabase
       .from("resources")
       .select("id, name, icon_url, publisher_id")
-      .eq("program_id", PROGRAM_ID)
+      .eq("program_id", programId)
       .in("resource_type", types)
       .order("name");
     return (fallback ?? []).map((r) => ({ ...r, subject_id: null as string | null }));
@@ -317,6 +320,7 @@ export async function addTask(formData: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Oturum açmanız gerekiyor" };
 
+  const programId = await getCurrentUserProgramId();
   const weekStart = getWeekStart(new Date(formData.task_date));
 
   let { data: plan } = await supabase
@@ -329,7 +333,7 @@ export async function addTask(formData: {
   if (!plan) {
     const { data: newPlan, error } = await supabase
       .from("weekly_plans")
-      .insert({ user_id: user.id, program_id: PROGRAM_ID, week_start_date: weekStart })
+      .insert({ user_id: user.id, program_id: programId, week_start_date: weekStart })
       .select("id")
       .single();
     if (error) return { error: error.message };

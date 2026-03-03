@@ -38,13 +38,21 @@ function resourceMatchesSubject(resourceName: string, subjectName: string): bool
   return false;
 }
 
+type ExamSectionId = "tyt" | "ayt" | "kpss" | "lgs";
+
 interface KonuTakipClientProps {
+  programExamType: "YKS" | "LGS" | "KPSS";
   tytSubjects: string[];
   aytSubjects: string[];
+  kpssSubjects: string[];
+  lgsSubjects: string[];
   subjects: Subject[];
   completions: Completion[];
   tytTopics: Record<string, string[]>;
   aytTopics: Record<string, string[]>;
+  kpssTopics: Record<string, string[]>;
+  lgsTopics: Record<string, string[]>;
+  examSections: { id: string; label: string }[];
   initialUserResources: UserResource[];
   publishers: Publisher[];
   dersResources: Resource[];
@@ -654,25 +662,42 @@ function KaynaklarimTab({
 
 /* ─── Ana bileşen ─── */
 export function KonuTakipClient({
+  programExamType,
   tytSubjects,
   aytSubjects,
+  kpssSubjects,
+  lgsSubjects,
   subjects,
   completions,
   tytTopics,
   aytTopics,
+  kpssTopics,
+  lgsTopics,
+  examSections,
   initialUserResources,
   publishers,
   dersResources,
   denemeResources,
 }: KonuTakipClientProps) {
   const [activeTab, setActiveTab] = useState<"konularim" | "kaynaklarim">("konularim");
-  const [examFilter, setExamFilter] = useState<"tyt" | "ayt">("tyt");
+  const defaultSection = examSections[0]?.id ?? "tyt";
+  const [examFilter, setExamFilter] = useState<ExamSectionId>(defaultSection as ExamSectionId);
   const [localCompletions, setLocalCompletions] = useState<Completion[]>(completions);
   const [loading, setLoading] = useState<string | null>(null);
 
   const subjectMap = new Map(subjects.map((s) => [s.name, s.id]));
-  const topics = examFilter === "tyt" ? tytTopics : aytTopics;
-  const subjectNames = examFilter === "tyt" ? tytSubjects : aytSubjects;
+
+  const topics: Record<string, string[]> =
+    examFilter === "tyt" ? tytTopics
+    : examFilter === "ayt" ? aytTopics
+    : examFilter === "kpss" ? kpssTopics
+    : lgsTopics;
+
+  const subjectNames: string[] =
+    examFilter === "tyt" ? tytSubjects
+    : examFilter === "ayt" ? aytSubjects
+    : examFilter === "kpss" ? kpssSubjects
+    : lgsSubjects;
 
   let totalTopics = 0;
   let completedTopics = 0;
@@ -736,20 +761,20 @@ export function KonuTakipClient({
 
       {activeTab === "konularim" ? (
         <>
-          {/* TYT / AYT filtre */}
+          {/* Sınav bölümü filtre (TYT/AYT veya KPSS/LGS tek sekme) */}
           <div className="flex w-fit gap-1 rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800/30">
-            {(["tyt", "ayt"] as const).map((t) => (
+            {examSections.map(({ id, label }) => (
               <button
-                key={t}
+                key={id}
                 type="button"
-                onClick={() => setExamFilter(t)}
+                onClick={() => setExamFilter(id as ExamSectionId)}
                 className={`rounded-md px-5 py-1.5 text-sm font-medium transition-all ${
-                  examFilter === t
+                  examFilter === id
                     ? "bg-indigo-500 text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                 }`}
               >
-                {t.toUpperCase()}
+                {label}
               </button>
             ))}
           </div>
@@ -768,9 +793,11 @@ export function KonuTakipClient({
           <div className="space-y-6">
             {subjectNames.map((subjName) => {
               const list = topics[subjName] ?? [];
+              if (list.length === 0) return null;
               const sid = subjectMap.get(subjName);
-              if (!sid || list.length === 0) return null;
-              const done = list.filter((t) => isCompleted(localCompletions, sid, t, examFilter)).length;
+              // sid yoksa readonly göster (migration 027 çalıştırılmamış)
+              const isReadonly = !sid;
+              const done = sid ? list.filter((t) => isCompleted(localCompletions, sid, t, examFilter)).length : 0;
               return (
                 <div key={subjName} className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
                   <div className="mb-3 flex items-center justify-between">
@@ -778,20 +805,25 @@ export function KonuTakipClient({
                       <BookOpen className="h-4 w-4 text-indigo-500" />
                       {subjName}
                     </h3>
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{done}/{list.length}</span>
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      {isReadonly ? `${list.length} konu` : `${done}/${list.length}`}
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {list.map((topic) => {
-                      const completed = isCompleted(localCompletions, sid, topic, examFilter);
-                      const key = `${sid}:${topic}:${examFilter}`;
+                      const completed = sid ? isCompleted(localCompletions, sid, topic, examFilter) : false;
+                      const key = sid ? `${sid}:${topic}:${examFilter}` : null;
                       return (
                         <button
                           key={topic}
                           type="button"
-                          onClick={() => handleToggle(sid, topic)}
-                          disabled={loading === key}
+                          onClick={() => sid && handleToggle(sid, topic)}
+                          disabled={isReadonly || (!!key && loading === key)}
+                          title={isReadonly ? "Supabase Migration 027 gerekli" : undefined}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-all ${
-                            completed
+                            isReadonly
+                              ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+                              : completed
                               ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                               : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                           }`}
@@ -802,6 +834,11 @@ export function KonuTakipClient({
                       );
                     })}
                   </div>
+                  {isReadonly && (
+                    <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
+                      ⚠ Konu ilerlemesini kaydetmek için Supabase SQL Editor&apos;de Migration 027&apos;yi çalıştırın.
+                    </p>
+                  )}
                 </div>
               );
             })}

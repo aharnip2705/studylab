@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { CalendarDays, PlusCircle, BarChart2, PlayCircle, Settings, PanelLeftClose, PanelLeft, Timer, X, ClipboardList, CreditCard } from "lucide-react";
 import { useSidebar } from "./sidebar-provider";
 import { StudyLabLogo } from "@/components/study-lab-logo";
+import { useSubscription } from "@/lib/swr/hooks";
+import { getTrialDaysLeft } from "@/lib/subscription-utils";
 
 const navItems = [
   { href: "/dashboard", label: "Haftalık Plan", icon: CalendarDays },
@@ -20,6 +22,17 @@ const navItems = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { collapsed, toggle, mobileOpen, setMobileOpen } = useSidebar();
+  const { data: subscription } = useSubscription();
+
+  const sub = subscription?.subscription;
+  const isAdmin = subscription?.isAdmin ?? false;
+  const proActive = subscription?.proActive ?? false;
+  const plan = sub?.plan ?? "free";
+  const isTrial = plan === "pro_trial" || plan === "standard_trial";
+  const isStandard = plan === "standard" || plan === "standard_trial";
+  const showProBadge = proActive || isAdmin;
+  const showStandardBadge = !showProBadge && isStandard;
+  const trialDaysLeft = isTrial ? getTrialDaysLeft(sub ?? null) : null;
 
   return (
     <>
@@ -36,7 +49,13 @@ export function DashboardSidebar() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex h-20 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800">
-              <StudyLabLogo href="/dashboard" size="md" />
+              <StudyLabLogo
+                href="/dashboard"
+                size="md"
+                showProBadge={showProBadge}
+                showStandardBadge={showStandardBadge}
+                trialDaysLeft={isTrial ? trialDaysLeft : null}
+              />
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
@@ -75,7 +94,13 @@ export function DashboardSidebar() {
     >
       <div className={`flex h-20 shrink-0 items-center border-b border-slate-200 dark:border-slate-800 ${collapsed ? "justify-center px-0" : "justify-between px-4"}`}>
         {!collapsed && (
-          <StudyLabLogo href="/dashboard" size="md" />
+          <StudyLabLogo
+            href="/dashboard"
+            size="md"
+            showProBadge={showProBadge}
+            showStandardBadge={showStandardBadge}
+            trialDaysLeft={isTrial ? trialDaysLeft : null}
+          />
         )}
         <button
           type="button"

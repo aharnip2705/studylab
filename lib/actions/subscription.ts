@@ -58,6 +58,33 @@ export async function getSubscription(): Promise<SubscriptionResult | null> {
           .eq("id", sub.id);
         sub = { ...sub, plan: "free" };
       }
+    } else {
+      // Abonelik yoksa 7 gün pro_trial oluştur
+      const now = new Date();
+      const trialEnds = new Date(now);
+      trialEnds.setDate(trialEnds.getDate() + 7);
+      const { data: inserted, error: insertErr } = await supabase
+        .from("subscriptions")
+        .insert({
+          user_id: user.id,
+          plan: "pro_trial",
+          trial_started_at: now.toISOString(),
+          trial_ends_at: trialEnds.toISOString(),
+          updated_at: now.toISOString(),
+        })
+        .select("*")
+        .single();
+      if (!insertErr && inserted) {
+        sub = inserted as Subscription;
+      } else {
+        // Race condition: başka istek eklemiş olabilir, tekrar oku
+        const { data: retry } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+        if (retry) sub = retry as Subscription;
+      }
     }
   } catch {
     // subscriptions tablosu yoksa veya hata

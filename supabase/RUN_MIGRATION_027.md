@@ -57,4 +57,9 @@ ALTER TABLE public.youtube_channels ADD COLUMN IF NOT EXISTS exam_type TEXT;
 ALTER TABLE public.youtube_channels DROP CONSTRAINT IF EXISTS youtube_channels_exam_type_check;
 ALTER TABLE public.youtube_channels ADD CONSTRAINT youtube_channels_exam_type_check
   CHECK (exam_type IS NULL OR exam_type IN ('YKS', 'LGS', 'KPSS'));
+
+-- 5. topic_completions: exam_type'a kpss ve lgs ekle
+ALTER TABLE public.topic_completions DROP CONSTRAINT IF EXISTS topic_completions_exam_type_check;
+ALTER TABLE public.topic_completions ADD CONSTRAINT topic_completions_exam_type_check
+  CHECK (exam_type IN ('tyt', 'ayt', 'kpss', 'lgs'));
 ```
