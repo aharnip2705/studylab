@@ -31,6 +31,17 @@
     --chart-text: #334155;
     --chart-tick: #64748b;
     --chart-label: #94a3b8;
+    /* WCAG AA semantic tokens */
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-tertiary: #64748b;
+    --input-bg: #f8fafc;
+    --input-text: #0f172a;
+    --input-placeholder: #94a3b8;
+    --input-border: #cbd5e1;
+    --label-text: #475569;
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
   }
 
   .dark {
@@ -60,7 +71,40 @@
     --chart-text: #e2e8f0;
     --chart-tick: #64748b;
     --chart-label: #94a3b8;
+    /* WCAG AA semantic tokens - dark */
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --input-bg: #0f172a;
+    --input-text: #f1f5f9;
+    --input-placeholder: #94a3b8;
+    --input-border: #334155;
+    --label-text: #cbd5e1;
+    --card-bg: #1e293b;
+    --card-border: #334155;
   }
+}
+
+/* WCAG AA: Dark mode input/textarea/select contrast (4.5:1+) */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="date"],
+.dark input[type="time"],
+.dark textarea,
+.dark select {
+  background-color: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border-color: var(--input-border);
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--input-placeholder) !important;
+  opacity: 1;
+}
+.dark label {
+  color: var(--label-text) !important;
 }
 
 body {
