@@ -262,37 +262,111 @@ html[data-bg-dark="true"] .dashboard-main-bg main [class*="bg-amber-50"] .text-a
   color: rgba(253, 224, 71, 0.95) !important;
 }
 
-/* Açık/beyaz arka plan: metin kontrastı - okunaklı koyu yazı */
+/* Açık/beyaz arka plan: KAPSAMLI metin kontrastı (WCAG AA) */
+/* Tüm beyaz/açık gri yazıları koyu yap */
+html[data-bg-light="true"] .dashboard-main-bg main {
+  /* Tüm text elementleri için base override */
+  --text-primary: #0f172a !important;
+  --text-secondary: #475569 !important;
+  --text-tertiary: #64748b !important;
+  --label-text: #475569 !important;
+}
+
+/* Tailwind text-* class'ları */
+html[data-bg-light="true"] .dashboard-main-bg main .text-white,
+html[data-bg-light="true"] .dashboard-main-bg main .text-slate-100,
+html[data-bg-light="true"] .dashboard-main-bg main .text-slate-200,
 html[data-bg-light="true"] .dashboard-main-bg main .text-slate-300,
-html[data-bg-light="true"] .dashboard-main-bg main .text-slate-400,
+html[data-bg-light="true"] .dashboard-main-bg main .text-slate-400 {
+  color: rgb(51, 65, 85) !important; /* slate-700 - WCAG AA */
+}
 html[data-bg-light="true"] .dashboard-main-bg main .text-slate-500,
 html[data-bg-light="true"] .dashboard-main-bg main .text-slate-600 {
-  color: rgb(51, 65, 85) !important;
+  color: rgb(30, 41, 59) !important; /* slate-800 */
 }
-html[data-bg-light="true"] .dashboard-main-bg main .text-slate-900,
+html[data-bg-light="true"] .dashboard-main-bg main .text-slate-700,
 html[data-bg-light="true"] .dashboard-main-bg main .text-slate-800,
-html[data-bg-light="true"] .dashboard-main-bg main .text-white {
-  color: rgb(15, 23, 42) !important;
+html[data-bg-light="true"] .dashboard-main-bg main .text-slate-900 {
+  color: rgb(15, 23, 42) !important; /* slate-900 */
 }
-html[data-bg-light="true"] .dashboard-main-bg main input,
-html[data-bg-light="true"] .dashboard-main-bg main input::placeholder,
-html[data-bg-light="true"] .dashboard-main-bg main select,
-html[data-bg-light="true"] .dashboard-main-bg main [class*="bg-white"] {
-  color: rgb(15, 23, 42) !important;
-}
-html[data-bg-light="true"] .dashboard-main-bg main input::placeholder {
-  color: rgb(100, 116, 139) !important;
+
+/* Dark-mode variant'ları */
+html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-white,
+html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-100,
+html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-200,
+html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-300 {
+  color: rgb(51, 65, 85) !important;
 }
 html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-400,
-html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-300,
-html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-white {
-  color: rgb(51, 65, 85) !important;
+html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-500 {
+  color: rgb(71, 85, 105) !important; /* slate-600 */
 }
-html[data-bg-light="true"] .dashboard-main-bg main .dark\:text-slate-200 {
+
+/* Form elemanları */
+html[data-bg-light="true"] .dashboard-main-bg main input,
+html[data-bg-light="true"] .dashboard-main-bg main textarea,
+html[data-bg-light="true"] .dashboard-main-bg main select {
   color: rgb(15, 23, 42) !important;
+  background-color: rgb(248, 250, 252) !important; /* slate-50 */
+  border-color: rgb(203, 213, 225) !important; /* slate-300 */
+}
+html[data-bg-light="true"] .dashboard-main-bg main input::placeholder,
+html[data-bg-light="true"] .dashboard-main-bg main textarea::placeholder {
+  color: rgb(100, 116, 139) !important; /* slate-500 */
 }
 html[data-bg-light="true"] .dashboard-main-bg main label {
-  color: rgb(71, 85, 105) !important;
+  color: rgb(71, 85, 105) !important; /* slate-600 */
+}
+
+/* Başlıklar (h1, h2, h3, p, span) */
+html[data-bg-light="true"] .dashboard-main-bg main h1,
+html[data-bg-light="true"] .dashboard-main-bg main h2,
+html[data-bg-light="true"] .dashboard-main-bg main h3,
+html[data-bg-light="true"] .dashboard-main-bg main h4 {
+  color: rgb(15, 23, 42) !important;
+}
+
+/* Recharts/SVG text elementleri */
+html[data-bg-light="true"] .dashboard-main-bg main text,
+html[data-bg-light="true"] .dashboard-main-bg main tspan {
+  fill: rgb(51, 65, 85) !important; /* SVG için fill kullan */
+}
+
+/* Kartlar ve beyaz/açık arkaplanlar */
+html[data-bg-light="true"] .dashboard-main-bg main [class*="bg-white"],
+html[data-bg-light="true"] .dashboard-main-bg main [class*="bg-slate-"] {
+  color: rgb(15, 23, 42) !important;
+}
+
+/* Gradient kartlar (istatistik kartları) - metin koyu olmalı */
+html[data-bg-light="true"] .dashboard-main-bg main [class*="bg-gradient"] {
+  color: rgb(15, 23, 42) !important;
+}
+
+/* Kartlar - açık arkaplan olmalı */
+html[data-bg-light="true"] .dashboard-main-bg main [class*="bg-slate-900"],
+html[data-bg-light="true"] .dashboard-main-bg main [class*="bg-slate-800"],
+html[data-bg-light="true"] .dashboard-main-bg main [class*="dark:bg-slate-900"],
+html[data-bg-light="true"] .dashboard-main-bg main [class*="dark:bg-slate-800"] {
+  background-color: rgb(255, 255, 255) !important;
+  border-color: rgb(226, 232, 240) !important; /* slate-200 */
+}
+
+/* Butonlar - beyaz bg üzerinde koyu olmalı */
+html[data-bg-light="true"] .dashboard-main-bg main button:not([class*="bg-indigo"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-purple"]) {
+  color: rgb(15, 23, 42) !important;
+}
+
+/* Chart kartları border */
+html[data-bg-light="true"] .dashboard-main-bg main [class*="border-slate-800"],
+html[data-bg-light="true"] .dashboard-main-bg main [class*="border-slate-700"] {
+  border-color: rgb(226, 232, 240) !important; /* slate-200 */
+}
+
+/* Recharts grid/axis - SVG stroke */
+html[data-bg-light="true"] .dashboard-main-bg main line[stroke],
+html[data-bg-light="true"] .dashboard-main-bg main path[stroke] {
+  stroke: rgb(203, 213, 225) !important; /* slate-300 */
 }
 
 /* ─── Apple-style UI Animasyonları ─── */
