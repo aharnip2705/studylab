@@ -11,10 +11,19 @@ import {
   type StudyField,
 } from "@/lib/study-field";
 
-const TARGET_YEARS = [
+const TARGET_YEARS_ANNUAL = [
   { value: 2026, label: "2026" },
   { value: 2027, label: "2027" },
 ];
+
+const TARGET_YEARS_KPSS = [
+  { value: 2026, label: "2026" },
+  { value: 2028, label: "2028" },
+];
+
+function getTargetYears(examType: ExamType | null) {
+  return examType === "KPSS" ? TARGET_YEARS_KPSS : TARGET_YEARS_ANNUAL;
+}
 
 const EXAM_ICONS: Record<ExamType, React.ReactNode> = {
   YKS: (
@@ -294,7 +303,7 @@ export default function OnboardingPage() {
                 animate="animate"
                 transition={{ staggerChildren: 0.08, delayChildren: 0.2 }}
               >
-                {TARGET_YEARS.map((opt) => (
+                {getTargetYears(examType).map((opt) => (
                   <motion.button
                     key={opt.value}
                     variants={staggerChild}
