@@ -2,9 +2,29 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { StudyField } from "@/lib/study-field";
+import type { StudyField, ExamType } from "@/lib/study-field";
 
-export async function getProfile() {
+export interface UserProfile {
+  exam_type: ExamType | null;
+  study_field: StudyField | null;
+  target_year: number | null;
+  full_name: string | null;
+  tyt_target_net: number | null;
+  ayt_target_net: number | null;
+  coach_resource_ids: { t: "r" | "u"; id: string }[];
+}
+
+const DEFAULT_PROFILE: UserProfile = {
+  exam_type: null,
+  study_field: null,
+  target_year: null,
+  full_name: null,
+  tyt_target_net: null,
+  ayt_target_net: null,
+  coach_resource_ids: [],
+};
+
+export async function getProfile(): Promise<UserProfile | null> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -12,16 +32,57 @@ export async function getProfile() {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("study_field, full_name, tyt_target_net, ayt_target_net, coach_resource_ids")
+      .select("exam_type, study_field, target_year, full_name, tyt_target_net, ayt_target_net, coach_resource_ids")
       .eq("id", user.id)
       .single();
 
-    if (error) {
-      return { study_field: "esit_agirlik" as StudyField, full_name: null, tyt_target_net: null, ayt_target_net: null, coach_resource_ids: [] };
-    }
-    return { ...data, coach_resource_ids: (data as { coach_resource_ids?: unknown })?.coach_resource_ids ?? [] };
+    if (error) return { ...DEFAULT_PROFILE };
+
+    return {
+      exam_type: (data.exam_type as ExamType) ?? null,
+      study_field: (data.study_field as StudyField) ?? null,
+      target_year: data.target_year ?? null,
+      full_name: data.full_name ?? null,
+      tyt_target_net: data.tyt_target_net ?? null,
+      ayt_target_net: data.ayt_target_net ?? null,
+      coach_resource_ids: Array.isArray(data.coach_resource_ids) ? data.coach_resource_ids : [],
+    };
   } catch {
-    return { study_field: "esit_agirlik" as StudyField, full_name: null, tyt_target_net: null, ayt_target_net: null, coach_resource_ids: [] };
+    return { ...DEFAULT_PROFILE };
+  }
+}
+
+export async function completeOnboarding(
+  examType: ExamType,
+  studyField: StudyField,
+  targetYear: number
+) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Oturum açmanız gerekiyor" };
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        exam_type: examType,
+        study_field: studyField,
+        target_year: targetYear,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+
+    if (error) return { error: error.message };
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/ayarlar");
+    revalidatePath("/dashboard/gorev-ekle");
+    revalidatePath("/dashboard/istatistikler");
+    revalidatePath("/dashboard/konu-takip");
+    revalidatePath("/dashboard/videolar");
+    return { success: true };
+  } catch {
+    return { error: "Bir hata oluştu. Lütfen tekrar deneyin." };
   }
 }
 
@@ -67,7 +128,7 @@ export async function updateTargetNets(tytTargetNet: number | null, aytTargetNet
 
     if (error) {
       if (error.message.includes("column") && error.message.includes("does not exist")) {
-        return { error: "Veritabanına tyt_target_net ve ayt_target_net sütunları eklenmeli. Supabase SQL Editor'dan: ALTER TABLE profiles ADD COLUMN IF NOT EXISTS tyt_target_net numeric, ADD COLUMN IF NOT EXISTS ayt_target_net numeric;" };
+        return { error: "Veritabanına tyt_target_net ve ayt_target_net sütunları eklenmeli." };
       }
       return { error: error.message };
     }
@@ -99,6 +160,26 @@ export async function updateStudyField(studyField: StudyField) {
     return { success: true };
   } catch {
     return { error: "Bir hata oluştu. Lütfen tekrar deneyin." };
+  }
+}
+
+export async function updateExamType(examType: ExamType) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Oturum açmanız gerekiyor" };
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ exam_type: examType, updated_at: new Date().toISOString() })
+      .eq("id", user.id);
+
+    if (error) return { error: error.message };
+    revalidatePath("/dashboard/ayarlar");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch {
+    return { error: "Bir hata oluştu." };
   }
 }
 

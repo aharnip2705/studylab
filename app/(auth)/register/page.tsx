@@ -26,7 +26,7 @@ export default function RegisterPage() {
         password,
         options: {
           data: { full_name: fullName },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/plans`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
         },
       });
 
@@ -60,9 +60,9 @@ export default function RegisterPage() {
 
       // E-posta onayı kapalıysa oturum açılır, direkt yönlendir
       if (data?.session) {
-        router.push("/plans");
-        router.refresh();
-        return;
+      router.push("/onboarding");
+      router.refresh();
+      return;
       }
 
       setSuccess(true);
@@ -122,7 +122,7 @@ export default function RegisterPage() {
             Kayıt Ol
           </h1>
           <p className="mt-2 text-slate-600 dark:text-slate-400">
-            YKS Ders Paneline ücretsiz katılın
+            StudyLab'a ücretsiz katılın
           </p>
         </div>
 

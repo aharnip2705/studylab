@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, createDataStreamResponse, formatDataStreamPart } from "ai";
 import { filterSubjectDetailsByField, getExamConfig } from "@/lib/exam-config";
-import type { StudyField } from "@/lib/study-field";
+import type { StudyField, ExamType } from "@/lib/study-field";
+import { getFieldLabel } from "@/lib/study-field";
 
 function streamErrorResponse(message: string, status: number) {
   return createDataStreamResponse({
@@ -35,6 +36,34 @@ interface CoachResource {
   name?: string;
 }
 
+function generateAiContext(profile: {
+  examType: ExamType | null;
+  studyField: StudyField | null;
+  targetYear: number | null;
+}): string {
+  const { examType, studyField, targetYear } = profile;
+  if (!examType) return "";
+
+  const fieldLabel = getFieldLabel(studyField);
+  const yearStr = targetYear ? ` ${targetYear}` : "";
+
+  if (examType === "YKS") {
+    const area = fieldLabel || "Sayısal";
+    return `Sen ${examType} — ${area}${yearStr} hedefine hazırlanan bir öğrenci için AI koçsun. Türk eğitim sistemine (TYT/AYT, MEB müfredatı) göre tavsiye ver.`;
+  }
+
+  if (examType === "LGS") {
+    return `Sen LGS${yearStr} hedefine hazırlanan bir öğrenci için AI koçsun. Türk eğitim sistemine (MEB 8. sınıf müfredatı) göre tavsiye ver.`;
+  }
+
+  if (examType === "KPSS") {
+    const level = fieldLabel || "Lisans";
+    return `Sen KPSS — ${level}${yearStr} hedefine hazırlanan bir aday için AI koçsun. KPSS Genel Yetenek, Genel Kültür ve Eğitim Bilimleri müfredatına göre tavsiye ver.`;
+  }
+
+  return "";
+}
+
 function buildContext(params: {
   exams: ExamInput[];
   studyField: string | null;
@@ -42,8 +71,17 @@ function buildContext(params: {
   aytTargetNet: number | null;
   topicCompletions: TopicCompletion[];
   coachResources: CoachResource[];
+  examType: ExamType | null;
+  targetYear: number | null;
 }) {
   const parts: string[] = [];
+
+  const aiCtx = generateAiContext({
+    examType: params.examType,
+    studyField: params.studyField as StudyField | null,
+    targetYear: params.targetYear,
+  });
+  if (aiCtx) parts.push(aiCtx);
 
   if (params.exams.length > 0) {
     const lines = params.exams
@@ -116,12 +154,16 @@ export async function POST(req: NextRequest) {
 
     let isAdmin = false;
     let planType = "free";
+    let profileExamType: ExamType | null = null;
+    let profileTargetYear: number | null = null;
     try {
       const [{ data: sub }, { data: profile }] = await Promise.all([
         supabase.from("subscriptions").select("plan").eq("user_id", user.id).single(),
-        supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
+        supabase.from("profiles").select("is_admin, exam_type, target_year").eq("id", user.id).single(),
       ]);
       isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin === true;
+      profileExamType = ((profile as { exam_type?: string } | null)?.exam_type as ExamType) ?? null;
+      profileTargetYear = (profile as { target_year?: number } | null)?.target_year ?? null;
       planType = sub?.plan ?? "free";
     } catch {
       // subscriptions tablosu yoksa devam
@@ -152,6 +194,8 @@ export async function POST(req: NextRequest) {
       aytTargetNet,
       topicCompletions,
       coachResources,
+      examType: profileExamType,
+      targetYear: profileTargetYear,
     });
 
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
@@ -161,9 +205,11 @@ export async function POST(req: NextRequest) {
       /^(hadi\s+)?(oluştur|hazırla|yap)\s*(bir)?\s*(program|plan)/i.test(lastUserText.trim()) ||
       /^(evet|tamam|e|olur)\s*$/i.test(lastUserText.trim());
 
-    const baseInstructions = `Sen StudyLab'ın uzman YKS hazırlık koçusun. Adın AI Mentör.
+    const examLabel = profileExamType === "LGS" ? "LGS" : profileExamType === "KPSS" ? "KPSS" : "YKS";
+
+    const baseInstructions = `Sen StudyLab'ın uzman ${examLabel} hazırlık koçusun. Adın AI Mentör.
 - Kullanıcıya "sen" diye hitap et, "öğrenci" deme.
-- Türk eğitim sistemine (TYT/AYT, MEB müfredatı) göre tavsiye ver.
+- Türk eğitim sistemine göre tavsiye ver.
 - Konuşma geçmişini MUTLAKA oku. Daha önce verdiğin önerileri TEKRARLAMA. Aynı soru tekrar gelirse farklı açı, derinlemesine analiz veya yeni perspektif sun.
 - Bilgi yoksa uydurma. "Bu bilgiyi sistemde göremiyorum, Konularım/Kaynaklarım'dan ekleyebilirsin" de.${contextStr}`;
 
@@ -178,7 +224,7 @@ Kullanıcı haftalık program istiyor. ÖNCE verilerini dikkatle analiz et:
 SADECE aşağıdaki JSON formatını döndür. Başka HİÇBİR metin, \`\`\`json EKLEME:
 {"plan":[{"day":"Pazartesi","tasks":[{"subject":"Türkçe","duration_minutes":90,"description":"Paragraf - anlam çıkarımı soruları"}]},{"day":"Salı","tasks":[]},{"day":"Çarşamba","tasks":[]},{"day":"Perşembe","tasks":[]},{"day":"Cuma","tasks":[]},{"day":"Cumartesi","tasks":[]},{"day":"Pazar","tasks":[]}]}
 
-Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. subject: Türkçe, Matematik, Fizik, Kimya, Biyoloji, Edebiyat, Tarih, Coğrafya, Felsefe. duration_minutes: 60-120. description kısa ve net. Sadece JSON.`;
+Kurallar: 7 gün (Pazartesi-Pazar). Her günde 2-4 görev. duration_minutes: 60-120. description kısa ve net. Sadece JSON.`;
 
     const chatSystemPrompt = `${baseInstructions}
 
@@ -190,7 +236,6 @@ Sohbet modundasın. Kısa, samimi, motive edici ama gerçekçi yanıtlar ver. Za
     });
     const modelName = (process.env.GROQ_MODEL as string | undefined) ?? "llama-3.3-70b-versatile";
 
-    // Plan için daha düşük temp = daha tutarlı/az yaratıcı; sohbet için biraz yüksek
     const temperature = isPlanRequest ? 0.3 : 0.75;
 
     const result = streamText({

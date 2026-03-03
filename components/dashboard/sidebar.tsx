@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, PlusCircle, BarChart2, BookOpen, PlayCircle, Settings, PanelLeftClose, PanelLeft, Timer, X, ClipboardList } from "lucide-react";
+import { CalendarDays, PlusCircle, BarChart2, PlayCircle, Settings, PanelLeftClose, PanelLeft, Timer, X, ClipboardList, CreditCard } from "lucide-react";
 import { useSidebar } from "./sidebar-provider";
 import { StudyLabLogo } from "@/components/study-lab-logo";
 
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/dashboard/videolar", label: "Video Dersler", icon: PlayCircle },
   { href: "/dashboard/sayac", label: "Pomodoro / Sayaç", icon: Timer },
   { href: "/dashboard/ayarlar", label: "Ayarlar", icon: Settings },
+  { href: "/plans", label: "Abonelik", icon: CreditCard },
 ];
 
 export function DashboardSidebar() {

@@ -2,11 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getProfile, updateStudyField } from "@/lib/actions/profile";
-import { STUDY_FIELD_OPTIONS, type StudyField } from "@/lib/study-field";
+import { getProfile, updateStudyField, updateExamType } from "@/lib/actions/profile";
+import {
+  STUDY_FIELD_OPTIONS,
+  EXAM_TYPE_OPTIONS,
+  getFieldsForExam,
+  getExamTypeForField,
+  type StudyField,
+  type ExamType,
+} from "@/lib/study-field";
 import { Button } from "@/components/ui/button";
 
 export function StudyFieldSettings({ embedded }: { embedded?: boolean } = {}) {
+  const [examType, setExamType] = useState<ExamType | "">("");
   const [studyField, setStudyField] = useState<StudyField | "">("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -17,20 +25,39 @@ export function StudyFieldSettings({ embedded }: { embedded?: boolean } = {}) {
     async function load() {
       setLoading(true);
       const profile = await getProfile();
-      setStudyField((profile as { study_field?: StudyField } | null)?.study_field ?? "esit_agirlik");
+      const field = profile?.study_field ?? "esit_agirlik";
+      setStudyField(field as StudyField);
+      setExamType(profile?.exam_type ?? getExamTypeForField(field as StudyField));
       setLoading(false);
     }
     load();
   }, []);
 
+  const availableFields = examType ? getFieldsForExam(examType as ExamType) : [];
+
+  function handleExamTypeChange(type: ExamType) {
+    setExamType(type);
+    const fields = getFieldsForExam(type);
+    if (fields.length === 1) {
+      setStudyField(fields[0].value);
+    } else {
+      setStudyField("");
+    }
+  }
+
   async function handleSave() {
-    if (!studyField) return;
+    if (!studyField || !examType) return;
     setSaving(true);
     setMessage(null);
-    const result = await updateStudyField(studyField as StudyField);
+
+    const [fieldResult, examResult] = await Promise.all([
+      updateStudyField(studyField as StudyField),
+      updateExamType(examType as ExamType),
+    ]);
+
     setSaving(false);
-    if (result.error) {
-      setMessage({ type: "error", text: result.error });
+    if (fieldResult.error || examResult.error) {
+      setMessage({ type: "error", text: fieldResult.error || examResult.error || "Hata oluştu" });
     } else {
       setMessage({ type: "success", text: "Ayarlar kaydedildi. Panel güncellendi." });
       router.refresh();
@@ -50,22 +77,54 @@ export function StudyFieldSettings({ embedded }: { embedded?: boolean } = {}) {
   return (
     <div className={wrapperClass}>
       <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
-        Alanınız Nedir?
+        Sınav ve Alan Seçimi
       </h2>
       <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
-        Seçiminize göre panelde görünen dersler güncellenir.
+        Seçiminize göre panelde görünen dersler ve içerikler güncellenir.
       </p>
-      <select
-        value={studyField}
-        onChange={(e) => setStudyField(e.target.value as StudyField)}
-        className="mb-4 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-      >
-        {STUDY_FIELD_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
+
+      <div className="mb-4">
+        <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+          Sınav Tipi
+        </label>
+        <select
+          value={examType}
+          onChange={(e) => handleExamTypeChange(e.target.value as ExamType)}
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+        >
+          <option value="" disabled>
+            Seçin...
           </option>
-        ))}
-      </select>
+          {EXAM_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label} — {opt.description}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {availableFields.length > 1 && (
+        <div className="mb-4">
+          <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            {examType === "YKS" ? "Alan" : "Eğitim Düzeyi"}
+          </label>
+          <select
+            value={studyField}
+            onChange={(e) => setStudyField(e.target.value as StudyField)}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+          >
+            <option value="" disabled>
+              Seçin...
+            </option>
+            {availableFields.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {message && (
         <p
           className={`mb-4 text-sm ${
@@ -75,7 +134,7 @@ export function StudyFieldSettings({ embedded }: { embedded?: boolean } = {}) {
           {message.text}
         </p>
       )}
-      <Button onClick={handleSave} disabled={saving}>
+      <Button onClick={handleSave} disabled={saving || !studyField}>
         {saving ? "Kaydediliyor..." : "Kaydet"}
       </Button>
     </div>

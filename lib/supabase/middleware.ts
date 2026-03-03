@@ -31,55 +31,71 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const pathname = request.nextUrl.pathname;
+
+  const isAuthPage =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password";
+  const isPublicPage = pathname === "/";
+  const isPlansPage = pathname === "/plans";
+  const isOnboardingPage = pathname === "/onboarding";
+
+  if (!user && !isAuthPage && !isPublicPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("redirectTo", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  if (!user) return response;
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("is_admin, exam_type")
+    .eq("id", user.id)
+    .single();
+
   const adminEmails = (process.env.ADMIN_EMAILS || "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-  const isAdminByEmail =
-    user?.email ? adminEmails.includes(user.email.toLowerCase()) : false;
+  const isAdminByEmail = user.email
+    ? adminEmails.includes(user.email.toLowerCase())
+    : false;
+  const isAdminByProfile =
+    (profileData as { is_admin?: boolean } | null)?.is_admin === true;
+  const isAdmin = isAdminByEmail || isAdminByProfile;
 
-  let isAdminByProfile = false;
+  const examType = (profileData as { exam_type?: string } | null)?.exam_type;
+  const hasCompletedOnboarding = !!examType;
 
-  if (user && !isAdminByEmail) {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .single();
-    isAdminByProfile = (profileData as { is_admin?: boolean } | null)?.is_admin === true;
+  if (!hasCompletedOnboarding && !isOnboardingPage && !isAuthPage && !isPublicPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/onboarding";
+    return NextResponse.redirect(url);
   }
 
-  const isAdmin = Boolean(user && (isAdminByEmail || isAdminByProfile));
-
-  const isAuthPage =
-    request.nextUrl.pathname === "/login" ||
-    request.nextUrl.pathname === "/register" ||
-    request.nextUrl.pathname === "/forgot-password";
-
-  const isPublicPage = request.nextUrl.pathname === "/";
-  const isPlansPage = request.nextUrl.pathname === "/plans";
-
-  // Admin /plans sayfasındaysa direkt dashboard'a yönlendir
-  if (user && isAdmin && isPlansPage) {
+  if (hasCompletedOnboarding && isOnboardingPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  // Giriş yapmış kullanıcı anasayfa veya auth sayfalarındaysa yönlendir
-  // Admin direkt dashboard'a, diğerleri plans'a
-  if (user && (isAuthPage || isPublicPage)) {
+  if (isAdmin && isPlansPage) {
     const url = request.nextUrl.clone();
-    url.pathname = isAdmin ? "/dashboard" : "/plans";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  // Giriş yapmamış kullanıcı korumalı sayfalardaysa login'e yönlendir
-  if (!user && !isAuthPage && !isPublicPage) {
+  if (isAuthPage || isPublicPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("redirectTo", request.nextUrl.pathname);
+    if (!hasCompletedOnboarding) {
+      url.pathname = "/onboarding";
+    } else {
+      url.pathname = isAdmin ? "/dashboard" : "/plans";
+    }
     return NextResponse.redirect(url);
   }
 

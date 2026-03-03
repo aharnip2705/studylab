@@ -111,6 +111,11 @@ export function useCoachData() {
   return useSWR(SWR_KEYS.coachData, fetcher, defaultSwrOptions);
 }
 
+/** Kullanıcı profili (exam_type, study_field, target_year vb.) */
+export function useProfile() {
+  return useSWR(SWR_KEYS.profile, getProfile, defaultSwrOptions);
+}
+
 /** Belirli key'i yeniden doğrula */
 export function revalidateKey(key: keyof typeof SWR_KEYS) {
   return mutate(SWR_KEYS[key]);

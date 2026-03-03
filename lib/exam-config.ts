@@ -53,7 +53,7 @@ const AYT_SOZEL = {
 };
 
 export const AYT_CONFIGS: Record<
-  Exclude<StudyField, "tyt" | "dil">,
+  string,
   {
     totalQuestions: number;
     totalTimeMinutes: number;
@@ -75,7 +75,7 @@ export function getExamConfig(
     studyField === "tyt" || studyField === "dil" || !studyField
       ? "esit_agirlik"
       : studyField;
-  return AYT_CONFIGS[field];
+  return AYT_CONFIGS[field] ?? AYT_CONFIGS["esit_agirlik"];
 }
 
 export function calculateNet(correct: number, wrong: number): number {
