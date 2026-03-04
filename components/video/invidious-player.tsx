@@ -5,52 +5,10 @@ import Plyr from "plyr";
 import Hls from "hls.js";
 import "plyr/dist/plyr.css";
 
-const INVIDIOUS_INSTANCES = [
-  "https://inv.nadeko.net",
-  "https://invidious.nerdvpn.de",
-  "https://yewtu.be",
+const INVIDIOUS_LINKS = [
+  { url: "https://inv.nadeko.net", label: "inv.nadeko.net" },
+  { url: "https://invidious.nerdvpn.de", label: "invidious.nerdvpn.de" },
 ];
-
-function parseStreamFromInvidious(data: {
-  formatStreams?: Array<{ url: string; qualityLabel?: string }>;
-  adaptiveFormats?: Array<{ url: string; qualityLabel?: string }>;
-  hlsUrl?: string;
-}): { streamUrl: string; streamType: "progressive" | "hls" | "dash" } | null {
-  const formatStreams = data.formatStreams ?? [];
-  const adaptiveFormats = data.adaptiveFormats ?? [];
-  const hlsUrl = data.hlsUrl ?? null;
-
-  if (formatStreams.length > 0) {
-    const best =
-      formatStreams
-        .filter((f) =>
-          ["720p", "480p", "360p"].includes(String(f.qualityLabel ?? ""))
-        )
-        .sort((a, b) => {
-          const order: Record<string, number> = { "720p": 0, "480p": 1, "360p": 2 };
-          return (order[a.qualityLabel ?? ""] ?? 99) - (order[b.qualityLabel ?? ""] ?? 99);
-        })[0] ?? formatStreams[0];
-    return { streamUrl: best.url, streamType: "progressive" };
-  }
-  if (hlsUrl) {
-    return { streamUrl: hlsUrl, streamType: "hls" };
-  }
-  if (adaptiveFormats.length > 0) {
-    const videoOnly = adaptiveFormats.filter((f) => f.qualityLabel);
-    const best =
-      videoOnly
-        .filter((f) =>
-          ["720p", "480p", "360p"].includes(String(f.qualityLabel ?? ""))
-        )
-        .sort((a, b) => {
-          const order: Record<string, number> = { "720p": 0, "480p": 1, "360p": 2 };
-          return (order[a.qualityLabel ?? ""] ?? 99) - (order[b.qualityLabel ?? ""] ?? 99);
-        })[0];
-    const url = best?.url ?? adaptiveFormats[0].url;
-    return { streamUrl: url, streamType: "dash" };
-  }
-  return null;
-}
 
 interface InvidiousPlayerProps {
   videoId: string;
@@ -73,51 +31,33 @@ export function InvidiousPlayer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const customInstance = process.env.NEXT_PUBLIC_INVIDIOUS_INSTANCE;
-  const instances = customInstance
-    ? [customInstance.replace(/\/$/, "")]
-    : INVIDIOUS_INSTANCES;
-
   useEffect(() => {
     if (!videoId) return;
 
     setLoading(true);
     setError(null);
 
-    async function tryFetch() {
-      for (const base of instances) {
-        try {
-          const url = `${base}/api/v1/videos/${encodeURIComponent(videoId)}?local=true`;
-          const res = await fetch(url);
-          const data = await res.json();
-
-          if (data.error) {
-            if (
-              data.error === "videoNotFound" ||
-              data.error === "videoUnavailable"
-            ) {
-              setError("Video bulunamadı");
-              onError?.(data.error);
-              return;
-            }
-            continue;
-          }
-
-          const parsed = parseStreamFromInvidious(data);
-          if (parsed) {
-            setStream(parsed);
-            return;
-          }
-        } catch {
-          continue;
+    fetch(`/api/invidious-stream/${encodeURIComponent(videoId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          const errMsg =
+            data.error === "video_bulunamadi" ? "Video bulunamadı" : "Video yüklenemedi";
+          setError(errMsg);
+          onError?.(data.error);
+          return;
         }
-      }
-      setError("Video yüklenemedi");
-      onError?.("fetch_error");
-    }
-
-    tryFetch().finally(() => setLoading(false));
-  }, [videoId, onError, customInstance ?? ""]);
+        setStream({
+          streamUrl: data.streamUrl,
+          streamType: data.streamType,
+        });
+      })
+      .catch(() => {
+        setError("Video yüklenemedi");
+        onError?.("fetch_error");
+      })
+      .finally(() => setLoading(false));
+  }, [videoId, onError]);
 
   useEffect(() => {
     if (!stream || !videoRef.current) return;
@@ -189,15 +129,15 @@ export function InvidiousPlayer({
           >
             YouTube&apos;da İzle
           </a>
-          {instances.slice(0, 2).map((base) => (
+          {INVIDIOUS_LINKS.map(({ url, label }) => (
             <a
-              key={base}
-              href={`${base}/watch?v=${videoId}`}
+              key={url}
+              href={`${url}/watch?v=${videoId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-400 hover:underline"
             >
-              Invidious&apos;da İzle ({new URL(base).hostname})
+              Invidious&apos;da İzle ({label})
             </a>
           ))}
         </div>
