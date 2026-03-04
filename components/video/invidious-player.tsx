@@ -31,20 +31,33 @@ export function InvidiousPlayer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [useYoutubeFallback, setUseYoutubeFallback] = useState(false);
+
   useEffect(() => {
     if (!videoId) return;
 
     setLoading(true);
     setError(null);
+    setUseYoutubeFallback(false);
 
     fetch(`/api/invidious-stream/${encodeURIComponent(videoId)}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 502 || res.status >= 500) {
+          setUseYoutubeFallback(true);
+          setLoading(false);
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
+        if (!data) return;
         if (data.error) {
-          const errMsg =
-            data.error === "video_bulunamadi" ? "Video bulunamadı" : "Video yüklenemedi";
-          setError(errMsg);
-          onError?.(data.error);
+          if (data.error === "video_bulunamadi") {
+            setError("Video bulunamadı");
+            onError?.(data.error);
+          } else {
+            setUseYoutubeFallback(true);
+          }
           return;
         }
         setStream({
@@ -53,8 +66,7 @@ export function InvidiousPlayer({
         });
       })
       .catch(() => {
-        setError("Video yüklenemedi");
-        onError?.("fetch_error");
+        setUseYoutubeFallback(true);
       })
       .finally(() => setLoading(false));
   }, [videoId, onError]);
@@ -65,6 +77,7 @@ export function InvidiousPlayer({
     const video = videoRef.current;
 
     const initPlayer = () => {
+      if (plyrRef.current || !video) return;
       plyrRef.current = new Plyr(video, {
         autoplay: true,
         controls: [
@@ -112,6 +125,20 @@ export function InvidiousPlayer({
     return (
       <div className="flex aspect-video w-full items-center justify-center bg-slate-900">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-600 border-t-white" />
+      </div>
+    );
+  }
+
+  if (useYoutubeFallback) {
+    return (
+      <div className="aspect-video w-full overflow-hidden rounded-t-xl">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1`}
+          title={title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="h-full w-full"
+        />
       </div>
     );
   }
