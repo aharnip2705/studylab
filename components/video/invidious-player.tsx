@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 const INVIDIOUS_INSTANCES = [
-  "https://invidious.privacydev.net",
   "https://invidious.nerdvpn.de",
   "https://yewtu.be",
   "https://inv.nadeko.net",
