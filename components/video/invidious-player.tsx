@@ -3,9 +3,10 @@
 import { useState } from "react";
 
 const INVIDIOUS_INSTANCES = [
-  "https://inv.nadeko.net",
+  "https://invidious.privacydev.net",
   "https://invidious.nerdvpn.de",
   "https://yewtu.be",
+  "https://inv.nadeko.net",
 ];
 
 interface InvidiousPlayerProps {
@@ -69,6 +70,7 @@ export function InvidiousPlayer({ videoId, title }: InvidiousPlayerProps) {
         key={embedUrl}
         src={embedUrl}
         title={title}
+        referrerPolicy="no-referrer"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowFullScreen
         className="h-full w-full border-0"
