@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const INVIDIOUS_INSTANCES = [
-  "https://invidious.nerdvpn.de",
-  "https://yewtu.be",
-  "https://inv.nadeko.net",
+const INVIDIOUS_LINKS = [
+  { url: "https://invidious.nerdvpn.de", label: "invidious.nerdvpn.de" },
+  { url: "https://yewtu.be", label: "yewtu.be" },
+  { url: "https://inv.nadeko.net", label: "inv.nadeko.net" },
 ];
 
 interface InvidiousPlayerProps {
@@ -15,29 +15,34 @@ interface InvidiousPlayerProps {
 }
 
 export function InvidiousPlayer({ videoId, title }: InvidiousPlayerProps) {
-  const customInstance = process.env.NEXT_PUBLIC_INVIDIOUS_INSTANCE?.replace(/\/$/, "");
-  const instances = customInstance ? [customInstance] : INVIDIOUS_INSTANCES;
+  const [embedBlocked, setEmbedBlocked] = useState(false);
 
-  const [instanceIndex, setInstanceIndex] = useState(0);
-  const [allFailed, setAllFailed] = useState(false);
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      try {
+        const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+        if (data?.event === "onError" && (data?.info === 101 || data?.info === 150)) {
+          setEmbedBlocked(true);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
-  const currentInstance = instances[instanceIndex];
-  const embedUrl = currentInstance
-    ? `${currentInstance}/embed/${videoId}?autoplay=1&hl=tr`
-    : null;
+  useEffect(() => {
+    setEmbedBlocked(false);
+  }, [videoId]);
 
-  function handleIframeError() {
-    if (instanceIndex + 1 < instances.length) {
-      setInstanceIndex((i) => i + 1);
-    } else {
-      setAllFailed(true);
-    }
-  }
-
-  if (allFailed || !embedUrl) {
+  if (embedBlocked) {
     return (
       <div className="flex aspect-video w-full flex-col items-center justify-center gap-4 bg-slate-900 p-6 text-center">
-        <p className="font-medium text-white">Video yüklenemedi</p>
+        <p className="font-medium text-white">Bu video embed&apos;e kapalı</p>
+        <p className="text-sm text-slate-400">
+          Kanal sahibi bu videoyu dış sitelerde oynatmayı kapatmış.
+        </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <a
             href={`https://www.youtube.com/watch?v=${videoId}`}
@@ -47,15 +52,15 @@ export function InvidiousPlayer({ videoId, title }: InvidiousPlayerProps) {
           >
             YouTube&apos;da İzle
           </a>
-          {instances.map((base) => (
+          {INVIDIOUS_LINKS.map(({ url, label }) => (
             <a
-              key={base}
-              href={`${base}/watch?v=${videoId}`}
+              key={url}
+              href={`${url}/watch?v=${videoId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-400 hover:underline"
             >
-              {new URL(base).hostname}&apos;da İzle
+              {label}&apos;da İzle
             </a>
           ))}
         </div>
@@ -66,14 +71,12 @@ export function InvidiousPlayer({ videoId, title }: InvidiousPlayerProps) {
   return (
     <div className="aspect-video w-full overflow-hidden rounded-t-xl">
       <iframe
-        key={embedUrl}
-        src={embedUrl}
+        key={videoId}
+        src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&enablejsapi=1`}
         title={title}
-        referrerPolicy="no-referrer"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowFullScreen
         className="h-full w-full border-0"
-        onError={handleIframeError}
       />
     </div>
   );
