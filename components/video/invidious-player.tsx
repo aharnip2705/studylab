@@ -5,6 +5,49 @@ import Plyr from "plyr";
 import Hls from "hls.js";
 import "plyr/dist/plyr.css";
 
+const DEFAULT_INVIDIOUS = "https://invidious.fdn.fr";
+
+function parseStreamFromInvidious(data: {
+  formatStreams?: Array<{ url: string; qualityLabel?: string }>;
+  adaptiveFormats?: Array<{ url: string; qualityLabel?: string }>;
+  hlsUrl?: string;
+}): { streamUrl: string; streamType: "progressive" | "hls" | "dash" } | null {
+  const formatStreams = data.formatStreams ?? [];
+  const adaptiveFormats = data.adaptiveFormats ?? [];
+  const hlsUrl = data.hlsUrl ?? null;
+
+  if (formatStreams.length > 0) {
+    const best =
+      formatStreams
+        .filter((f) =>
+          ["720p", "480p", "360p"].includes(String(f.qualityLabel ?? ""))
+        )
+        .sort((a, b) => {
+          const order: Record<string, number> = { "720p": 0, "480p": 1, "360p": 2 };
+          return (order[a.qualityLabel ?? ""] ?? 99) - (order[b.qualityLabel ?? ""] ?? 99);
+        })[0] ?? formatStreams[0];
+    return { streamUrl: best.url, streamType: "progressive" };
+  }
+  if (hlsUrl) {
+    return { streamUrl: hlsUrl, streamType: "hls" };
+  }
+  if (adaptiveFormats.length > 0) {
+    const videoOnly = adaptiveFormats.filter((f) => f.qualityLabel);
+    const best =
+      videoOnly
+        .filter((f) =>
+          ["720p", "480p", "360p"].includes(String(f.qualityLabel ?? ""))
+        )
+        .sort((a, b) => {
+          const order: Record<string, number> = { "720p": 0, "480p": 1, "360p": 2 };
+          return (order[a.qualityLabel ?? ""] ?? 99) - (order[b.qualityLabel ?? ""] ?? 99);
+        })[0];
+    const url = best?.url ?? adaptiveFormats[0].url;
+    return { streamUrl: url, streamType: "dash" };
+  }
+  return null;
+}
+
 interface InvidiousPlayerProps {
   videoId: string;
   title: string;
@@ -26,33 +69,42 @@ export function InvidiousPlayer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const invidiousInstance =
+    process.env.NEXT_PUBLIC_INVIDIOUS_INSTANCE || DEFAULT_INVIDIOUS;
+
   useEffect(() => {
     if (!videoId) return;
 
     setLoading(true);
     setError(null);
 
-    fetch(`/api/invidious-stream/${encodeURIComponent(videoId)}`)
+    const url = `${invidiousInstance}/api/v1/videos/${encodeURIComponent(videoId)}?local=true`;
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
         if (data.error) {
           const errMsg =
-            data.error === "video_bulunamadi" ? "Video bulunamadı" : data.error;
+            data.error === "videoNotFound" || data.error === "videoUnavailable"
+              ? "Video bulunamadı"
+              : "Video yüklenemedi";
           setError(errMsg);
           onError?.(data.error);
           return;
         }
-        setStream({
-          streamUrl: data.streamUrl,
-          streamType: data.streamType,
-        });
+        const parsed = parseStreamFromInvidious(data);
+        if (parsed) {
+          setStream(parsed);
+        } else {
+          setError("Video bulunamadı");
+          onError?.("stream_bulunamadi");
+        }
       })
       .catch(() => {
         setError("Video yüklenemedi");
         onError?.("fetch_error");
       })
       .finally(() => setLoading(false));
-  }, [videoId, onError]);
+  }, [videoId, onError, invidiousInstance]);
 
   useEffect(() => {
     if (!stream || !videoRef.current) return;
@@ -102,9 +154,6 @@ export function InvidiousPlayer({
       video.src = "";
     };
   }, [stream]);
-
-  const invidiousInstance =
-    process.env.NEXT_PUBLIC_INVIDIOUS_INSTANCE || "https://invidious.fdn.fr";
 
   if (loading) {
     return (
