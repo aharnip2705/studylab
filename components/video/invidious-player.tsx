@@ -5,7 +5,11 @@ import Plyr from "plyr";
 import Hls from "hls.js";
 import "plyr/dist/plyr.css";
 
-const DEFAULT_INVIDIOUS = "https://invidious.fdn.fr";
+const INVIDIOUS_INSTANCES = [
+  "https://inv.nadeko.net",
+  "https://invidious.nerdvpn.de",
+  "https://yewtu.be",
+];
 
 function parseStreamFromInvidious(data: {
   formatStreams?: Array<{ url: string; qualityLabel?: string }>;
@@ -69,8 +73,10 @@ export function InvidiousPlayer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const invidiousInstance =
-    process.env.NEXT_PUBLIC_INVIDIOUS_INSTANCE || DEFAULT_INVIDIOUS;
+  const customInstance = process.env.NEXT_PUBLIC_INVIDIOUS_INSTANCE;
+  const instances = customInstance
+    ? [customInstance.replace(/\/$/, "")]
+    : INVIDIOUS_INSTANCES;
 
   useEffect(() => {
     if (!videoId) return;
@@ -78,33 +84,40 @@ export function InvidiousPlayer({
     setLoading(true);
     setError(null);
 
-    const url = `${invidiousInstance}/api/v1/videos/${encodeURIComponent(videoId)}?local=true`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) {
-          const errMsg =
-            data.error === "videoNotFound" || data.error === "videoUnavailable"
-              ? "Video bulunamadı"
-              : "Video yüklenemedi";
-          setError(errMsg);
-          onError?.(data.error);
-          return;
+    async function tryFetch() {
+      for (const base of instances) {
+        try {
+          const url = `${base}/api/v1/videos/${encodeURIComponent(videoId)}?local=true`;
+          const res = await fetch(url);
+          const data = await res.json();
+
+          if (data.error) {
+            if (
+              data.error === "videoNotFound" ||
+              data.error === "videoUnavailable"
+            ) {
+              setError("Video bulunamadı");
+              onError?.(data.error);
+              return;
+            }
+            continue;
+          }
+
+          const parsed = parseStreamFromInvidious(data);
+          if (parsed) {
+            setStream(parsed);
+            return;
+          }
+        } catch {
+          continue;
         }
-        const parsed = parseStreamFromInvidious(data);
-        if (parsed) {
-          setStream(parsed);
-        } else {
-          setError("Video bulunamadı");
-          onError?.("stream_bulunamadi");
-        }
-      })
-      .catch(() => {
-        setError("Video yüklenemedi");
-        onError?.("fetch_error");
-      })
-      .finally(() => setLoading(false));
-  }, [videoId, onError, invidiousInstance]);
+      }
+      setError("Video yüklenemedi");
+      onError?.("fetch_error");
+    }
+
+    tryFetch().finally(() => setLoading(false));
+  }, [videoId, onError, customInstance ?? ""]);
 
   useEffect(() => {
     if (!stream || !videoRef.current) return;
@@ -165,16 +178,29 @@ export function InvidiousPlayer({
 
   if (error) {
     return (
-      <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 bg-slate-900 p-6 text-center">
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-4 bg-slate-900 p-6 text-center">
         <p className="font-medium text-white">{error}</p>
-        <a
-          href={`${invidiousInstance}/watch?v=${videoId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-blue-400 hover:underline"
-        >
-          Invidious&apos;da İzle
-        </a>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <a
+            href={`https://www.youtube.com/watch?v=${videoId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
+          >
+            YouTube&apos;da İzle
+          </a>
+          {instances.slice(0, 2).map((base) => (
+            <a
+              key={base}
+              href={`${base}/watch?v=${videoId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-400 hover:underline"
+            >
+              Invidious&apos;da İzle ({new URL(base).hostname})
+            </a>
+          ))}
+        </div>
       </div>
     );
   }
