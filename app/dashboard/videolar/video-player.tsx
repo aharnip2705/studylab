@@ -17,6 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toggleSaveVideo, savePlaylistVideo } from "@/lib/actions/saved-videos";
+import { InvidiousPlayer } from "@/components/video/invidious-player";
 
 type SubjectLike = { name: string } | { name: string }[] | null;
 
@@ -496,7 +497,6 @@ export function VideoPlayer({
   const router = useRouter();
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
-  const [embedBlocked, setEmbedBlocked] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [channelsOpen, setChannelsOpen] = useState(false);
@@ -563,7 +563,6 @@ export function VideoPlayer({
   );
 
   function selectVideo(v: Video) {
-    setEmbedBlocked(false);
     setSelectedVideo(v);
   }
 
@@ -601,28 +600,12 @@ export function VideoPlayer({
     onMutate?.() ?? router.refresh();
   }
 
-  // Detect YouTube embed blocked via postMessage (error codes 101, 150)
-  useEffect(() => {
-    function handleMessage(e: MessageEvent) {
-      try {
-        const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
-        if (data?.event === "onError" && (data?.info === 101 || data?.info === 150)) {
-          setEmbedBlocked(true);
-        }
-      } catch { /* ignore */ }
-    }
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
   function handlePlayFromModal(v: Video) {
-    setEmbedBlocked(false);
     setSelectedVideo(v);
     setChannelModalTarget(null);
   }
 
   function handlePlayFromPlaylist(videoId: string, title: string) {
-    setEmbedBlocked(false);
     setSelectedVideo({
       id: `yt-${videoId}`,
       video_id: videoId,
@@ -944,36 +927,11 @@ export function VideoPlayer({
           {selectedVideo ? (
             <>
               <div className="relative aspect-video w-full overflow-hidden rounded-t-xl">
-                {embedBlocked ? (
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-slate-900 p-6 text-center">
-                    <Youtube className="h-12 w-12 text-red-500" />
-                    <div>
-                      <p className="font-semibold text-white">Bu video embed'e kapalı</p>
-                      <p className="mt-1 text-sm text-slate-400">
-                        Kanal sahibi bu videoyu dış sitelerde oynatmayı kapatmış.
-                      </p>
-                    </div>
-                    <a
-                      href={`https://www.youtube.com/watch?v=${selectedVideo.video_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-500"
-                    >
-                      <Youtube className="h-4 w-4" />
-                      YouTube&apos;da İzle
-                    </a>
-                  </div>
-                ) : (
-                  <iframe
-                    key={selectedVideo.video_id}
-                    src={`https://www.youtube-nocookie.com/embed/${selectedVideo.video_id}?rel=0&modestbranding=1&autoplay=1&enablejsapi=1`}
-                    title={selectedVideo.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="h-full w-full"
-                    onLoad={() => setEmbedBlocked(false)}
-                  />
-                )}
+                <InvidiousPlayer
+                  key={selectedVideo.video_id}
+                  videoId={selectedVideo.video_id}
+                  title={selectedVideo.title}
+                />
               </div>
               <div className="flex items-start justify-between gap-4 border-t border-slate-700 bg-slate-900 px-4 py-3">
                 <div className="min-w-0 flex-1">
