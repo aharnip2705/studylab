@@ -12,7 +12,11 @@ const INVIDIOUS_INSTANCES = [
 
 const PIPED_INSTANCES = [
   "https://pipedapi.kavin.rocks",
+  "https://pipedapi.leptons.xyz",
+  "https://api.piped.yt",
   "https://pipedapi.adminforge.de",
+  "https://pipedapi.drgns.space",
+  "https://piped-api.privacy.com.de",
 ];
 
 function parseInvidiousStream(data: {

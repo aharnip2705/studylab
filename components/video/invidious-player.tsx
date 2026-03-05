@@ -176,7 +176,6 @@ export function InvidiousPlayer({ videoId, title }: InvidiousPlayerProps) {
         src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&enablejsapi=1`}
         title={title}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-        allowFullScreen
         className="h-full w-full border-0"
       />
     </div>
