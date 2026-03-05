@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Hls from "hls.js";
 
 const INVIDIOUS_LINKS = [
   { url: "https://invidious.nerdvpn.de", label: "invidious.nerdvpn.de" },
@@ -14,8 +15,87 @@ interface InvidiousPlayerProps {
   onError?: (message: string) => void;
 }
 
+type StreamInfo = {
+  streamUrl: string;
+  streamType: "progressive" | "hls" | "dash";
+  title?: string;
+  lengthSeconds?: number;
+};
+
 export function InvidiousPlayer({ videoId, title }: InvidiousPlayerProps) {
   const [embedBlocked, setEmbedBlocked] = useState(false);
+  const [stream, setStream] = useState<StreamInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [useYoutubeFallback, setUseYoutubeFallback] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+
+  useEffect(() => {
+    setEmbedBlocked(false);
+    setStream(null);
+    setLoading(true);
+    setUseYoutubeFallback(false);
+  }, [videoId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchStream() {
+      try {
+        const res = await fetch(`/api/invidious-stream/${encodeURIComponent(videoId)}`);
+        if (cancelled) return;
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.streamUrl && data.streamType) {
+            if (data.streamType === "dash") {
+              setUseYoutubeFallback(true);
+            } else {
+              setStream({ streamUrl: data.streamUrl, streamType: data.streamType, title: data.title, lengthSeconds: data.lengthSeconds });
+            }
+            setLoading(false);
+            return;
+          }
+        }
+
+        setUseYoutubeFallback(true);
+      } catch {
+        if (!cancelled) setUseYoutubeFallback(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchStream();
+    return () => { cancelled = true; };
+  }, [videoId]);
+
+  useEffect(() => {
+    if (!stream || stream.streamType !== "hls" || !videoRef.current) return;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(stream.streamUrl);
+      hls.attachMedia(videoRef.current);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {});
+      hls.on(Hls.Events.ERROR, (_, ev) => {
+        if (ev.fatal) setUseYoutubeFallback(true);
+      });
+      return () => {
+        hls.destroy();
+        hlsRef.current = null;
+      };
+    } else if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
+      videoRef.current.src = stream.streamUrl;
+      return () => { videoRef.current!.src = ""; };
+    } else {
+      setUseYoutubeFallback(true);
+    }
+  }, [stream?.streamUrl, stream?.streamType]);
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -31,10 +111,6 @@ export function InvidiousPlayer({ videoId, title }: InvidiousPlayerProps) {
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   }, []);
-
-  useEffect(() => {
-    setEmbedBlocked(false);
-  }, [videoId]);
 
   if (embedBlocked) {
     return (
@@ -64,6 +140,31 @@ export function InvidiousPlayer({ videoId, title }: InvidiousPlayerProps) {
             </a>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex aspect-video w-full items-center justify-center bg-slate-900">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+      </div>
+    );
+  }
+
+  if (stream && !useYoutubeFallback && (stream.streamType === "progressive" || stream.streamType === "hls")) {
+    return (
+      <div className="aspect-video w-full overflow-hidden rounded-t-xl bg-black">
+        <video
+          ref={videoRef}
+          controls
+          autoPlay
+          playsInline
+          className="h-full w-full"
+          src={stream.streamType === "progressive" ? stream.streamUrl : undefined}
+          title={title}
+          onError={() => setUseYoutubeFallback(true)}
+        />
       </div>
     );
   }
