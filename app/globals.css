@@ -164,6 +164,13 @@ html[data-bg-dark="true"] .dashboard-main-bg header .text-slate-600,
 html[data-bg-dark="true"] .dashboard-main-bg header .text-slate-500 {
   color: rgba(255, 255, 255, 0.85) !important;
 }
+html[data-bg-dark="true"] .dashboard-main-bg header [class*="text-slate-900"],
+html[data-bg-dark="true"] .dashboard-main-bg header .dark\:text-white {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg header .dark\:text-slate-400 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
 
 html[data-bg-dark="true"] .dashboard-main-bg aside {
   background: rgba(0, 0, 0, 0.4) !important;
@@ -250,6 +257,16 @@ html[data-bg-dark="true"] .dashboard-main-bg main button[class*="bg-white"]:not(
 html[data-bg-dark="true"] .dashboard-main-bg main div[class*="rounded"][class*="bg-slate-100"][class*="p-1"],
 html[data-bg-dark="true"] .dashboard-main-bg main div[class*="rounded"][class*="bg-slate-800"] {
   background: rgba(255, 255, 255, 0.08) !important;
+}
+/* Boş durum kutuları (border-dashed, bg-slate-50) - Konu takip, Kaynaklarım */
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="border-dashed"][class*="bg-slate-50"],
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="border-dashed"][class*="bg-slate-900"] {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="border-dashed"] p {
+  color: rgba(255, 255, 255, 0.8) !important;
 }
 /* Readonly alanlar (Ad Soyad, E-posta vb.) */
 html[data-bg-dark="true"] .dashboard-main-bg main p[class*="rounded"][class*="border"],

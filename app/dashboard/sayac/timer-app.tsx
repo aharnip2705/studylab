@@ -102,8 +102,12 @@ export function TimerApp() {
 
   const { resolvedTheme } = useTheme();
   const [bgLight, setBgLight] = useState(false);
+  const [bgDark, setBgDark] = useState(false);
   useEffect(() => {
-    const update = () => setBgLight(document.documentElement.getAttribute("data-bg-light") === "true");
+    const update = () => {
+      setBgLight(document.documentElement.getAttribute("data-bg-light") === "true");
+      setBgDark(document.documentElement.getAttribute("data-bg-dark") === "true");
+    };
     update();
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-bg-light", "data-bg-dark"] });
@@ -113,7 +117,7 @@ export function TimerApp() {
       window.removeEventListener("bg-settings-change", update);
     };
   }, []);
-  const isLight = resolvedTheme === "light" || bgLight;
+  const isLight = (resolvedTheme === "light" || bgLight) && !bgDark;
   const theme = THEMES.find((t) => t.id === themeId) ?? THEMES[1];
   const isCustom = themeId === "custom";
   const customIsLight = isCustom && hexIsLight(customColor);
