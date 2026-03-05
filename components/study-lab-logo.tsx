@@ -8,8 +8,6 @@ interface StudyLabLogoProps {
   showProBadge?: boolean;
   /** Standart paket kullanıcıları için */
   showStandardBadge?: boolean;
-  /** Deneme süresinden kalan gün sayısı - null ise gün sayısı gösterilmez */
-  trialDaysLeft?: number | null;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
@@ -24,7 +22,6 @@ export function StudyLabLogo({
   href,
   showProBadge = false,
   showStandardBadge = false,
-  trialDaysLeft = null,
   size = "md",
   className = "",
 }: StudyLabLogoProps) {
@@ -50,11 +47,6 @@ export function StudyLabLogo({
           </span>
         )}
       </span>
-      {(showProBadge || showStandardBadge) && trialDaysLeft !== null && (
-        <span className="mt-0.5 text-[10px] font-medium leading-none text-slate-500 dark:text-slate-400">
-          {trialDaysLeft > 0 ? `${trialDaysLeft} gün kaldı` : "Deneme süresi doldu"}
-        </span>
-      )}
     </span>
   );
 

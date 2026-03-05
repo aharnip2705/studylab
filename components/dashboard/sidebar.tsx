@@ -6,7 +6,6 @@ import { CalendarDays, PlusCircle, BarChart2, PlayCircle, Settings, PanelLeftClo
 import { useSidebar } from "./sidebar-provider";
 import { StudyLabLogo } from "@/components/study-lab-logo";
 import { useSubscription } from "@/lib/swr/hooks";
-import { getTrialDaysLeft } from "@/lib/subscription-utils";
 
 const navItems = [
   { href: "/dashboard", label: "Haftalık Plan", icon: CalendarDays },
@@ -28,11 +27,9 @@ export function DashboardSidebar() {
   const isAdmin = subscription?.isAdmin ?? false;
   const proActive = subscription?.proActive ?? false;
   const plan = sub?.plan ?? "free";
-  const isTrial = plan === "pro_trial" || plan === "standard_trial";
   const isStandard = plan === "standard" || plan === "standard_trial";
   const showProBadge = proActive || isAdmin;
   const showStandardBadge = !showProBadge && isStandard;
-  const trialDaysLeft = isTrial ? getTrialDaysLeft(sub ?? null) : null;
 
   return (
     <>
@@ -54,7 +51,6 @@ export function DashboardSidebar() {
                 size="md"
                 showProBadge={showProBadge}
                 showStandardBadge={showStandardBadge}
-                trialDaysLeft={isTrial ? trialDaysLeft : null}
               />
               <button
                 type="button"
@@ -99,7 +95,6 @@ export function DashboardSidebar() {
             size="md"
             showProBadge={showProBadge}
             showStandardBadge={showStandardBadge}
-            trialDaysLeft={isTrial ? trialDaysLeft : null}
           />
         )}
         <button

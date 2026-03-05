@@ -5,11 +5,9 @@ import { Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutButton } from "@/components/logout-button";
 import { HeaderCountdownRadial } from "./header-countdown-radial";
-import { TrialBadge } from "./trial-badge";
 import { useSidebar } from "./sidebar-provider";
 import { StudyLabLogo } from "@/components/study-lab-logo";
 import { useSubscription } from "@/lib/swr/hooks";
-import { getTrialDaysLeft } from "@/lib/subscription-utils";
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -40,11 +38,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   const proActive = subscription?.proActive ?? false;
   const plan = sub?.plan ?? "free";
 
-  const isTrial = plan === "pro_trial" || plan === "standard_trial";
   const isStandard = plan === "standard" || plan === "standard_trial";
   const isPro = proActive;
-
-  const trialDaysLeft = isTrial ? getTrialDaysLeft(sub ?? null) : null;
 
   const showProBadge = isPro || isAdmin;
   const showStandardBadge = !showProBadge && isStandard;
@@ -64,7 +59,6 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           href="/dashboard"
           showProBadge={showProBadge}
           showStandardBadge={showStandardBadge}
-          trialDaysLeft={isTrial ? trialDaysLeft : null}
           size="md"
         />
         <span className="hidden sm:inline text-sm text-slate-600 dark:text-slate-500">
@@ -72,7 +66,6 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <TrialBadge />
         <HeaderCountdownRadial />
         <ThemeToggle />
         <LogoutButton />

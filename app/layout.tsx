@@ -13,6 +13,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "StudyLab",
   description: "YKS'ye hazırlanan öğrenciler için akıllı ders planlama ve takip paneli",
+  other: {
+    "probely-verification": "1144a5ee-f76a-40c7-9505-49c1d431baf7",
+  },
   icons: {
     icon: [
       { url: "/icon.png?v=3", type: "image/png", sizes: "32x32" },
