@@ -199,24 +199,42 @@ html[data-bg-dark="true"] .dashboard-main-bg main .text-slate-500 {
 /* Koyu arka plan: form kartları, Görev Ekle, Konu Takip, Ayarlar, Video Dersler - beyaz tema uyumu */
 html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="bg-white"],
 html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-2xl"][class*="border"][class*="bg-white"],
-html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="bg-slate-50"] {
-  background: rgba(255, 255, 255, 0.1) !important;
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="bg-slate-50"],
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="dark:bg-slate-900"] {
+  background: rgba(15, 23, 42, 0.85) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
+}
+/* Readonly alanlar (Ad Soyad, E-posta vb.) */
+html[data-bg-dark="true"] .dashboard-main-bg main p[class*="rounded"][class*="border"],
+html[data-bg-dark="true"] .dashboard-main-bg main p[class*="rounded-lg"] {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
 }
 html[data-bg-dark="true"] .dashboard-main-bg main input[class*="rounded"],
 html[data-bg-dark="true"] .dashboard-main-bg main input[class*="border"],
 html[data-bg-dark="true"] .dashboard-main-bg main textarea[class*="rounded"],
-html[data-bg-dark="true"] .dashboard-main-bg main textarea[class*="border"] {
-  background: rgba(0, 0, 0, 0.25) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
+html[data-bg-dark="true"] .dashboard-main-bg main textarea[class*="border"],
+html[data-bg-dark="true"] .dashboard-main-bg main select[class*="rounded"],
+html[data-bg-dark="true"] .dashboard-main-bg main select[class*="border"] {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
   color: rgba(255, 255, 255, 0.95) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main select option {
+  background: #1e293b;
+  color: #f1f5f9;
 }
 html[data-bg-dark="true"] .dashboard-main-bg main input::placeholder,
 html[data-bg-dark="true"] .dashboard-main-bg main textarea::placeholder {
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: rgba(255, 255, 255, 0.55) !important;
 }
 html[data-bg-dark="true"] .dashboard-main-bg main label {
   color: rgba(255, 255, 255, 0.9) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main p.text-slate-500,
+html[data-bg-dark="true"] .dashboard-main-bg main p.text-xs {
+  color: rgba(255, 255, 255, 0.7) !important;
 }
 /* Dropdown/select butonları */
 html[data-bg-dark="true"] .dashboard-main-bg main button[class*="bg-white"][class*="border"],
