@@ -1,11 +1,24 @@
 "use client";
 
+import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, PlusCircle, BarChart2, PlayCircle, Settings, PanelLeftClose, PanelLeft, Timer, X, ClipboardList, CreditCard } from "lucide-react";
 import { useSidebar } from "./sidebar-provider";
 import { StudyLabLogo } from "@/components/study-lab-logo";
 import { useSubscription } from "@/lib/swr/hooks";
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Günaydın";
+  if (h >= 12 && h < 17) return "İyi günler";
+  if (h >= 17 && h < 21) return "İyi akşamlar";
+  return "İyi geceler";
+}
+function getFirstName(fullName: string): string {
+  const trimmed = fullName?.trim() || "";
+  return trimmed.split(/\s+/)[0] || trimmed;
+}
 
 const navItems = [
   { href: "/dashboard", label: "Haftalık Plan", icon: CalendarDays },
@@ -18,9 +31,12 @@ const navItems = [
   { href: "/plans", label: "Abonelik", icon: CreditCard },
 ];
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ user }: { user?: User | null }) {
   const pathname = usePathname();
   const { collapsed, toggle, mobileOpen, setMobileOpen } = useSidebar();
+  const fullName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+  const firstName = getFirstName(fullName) || "Kullanıcı";
+  const greeting = getGreeting();
   const { data: subscription } = useSubscription();
 
   const sub = subscription?.subscription;
@@ -45,20 +61,25 @@ export function DashboardSidebar() {
             className="animate-slide-in-from-left absolute left-0 top-0 h-full w-64 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex h-20 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800">
-              <StudyLabLogo
-                href="/dashboard"
-                size="md"
-                showProBadge={showProBadge}
-                showStandardBadge={showStandardBadge}
-              />
-              <button
+            <div className="flex flex-col gap-1 border-b border-slate-200 px-4 py-4 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <StudyLabLogo
+                  href="/dashboard"
+                  size="md"
+                  showProBadge={showProBadge}
+                  showStandardBadge={showStandardBadge}
+                />
+                <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="h-5 w-5" />
               </button>
+              </div>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {greeting}, {firstName}
+              </p>
             </div>
             <nav className="space-y-0.5 p-3">
               {navItems.map((item) => {

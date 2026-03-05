@@ -16,7 +16,7 @@ export function DashboardShell({ user, children }: { user: User; children: React
     <PomodoroProvider>
     <SidebarProvider>
       <div className="dashboard-main-bg flex min-h-screen bg-slate-50 dark:bg-slate-950">
-        <DashboardSidebar />
+        <DashboardSidebar user={user} />
         <DashboardContent>
           <DashboardHeader user={user} />
           <main className="flex-1 p-6">{children}</main>

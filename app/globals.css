@@ -107,6 +107,19 @@
   color: var(--label-text) !important;
 }
 
+/* Özel arka plan (data-bg-dark) ile .dark olmadan da input/select koyu olsun */
+html[data-bg-dark="true"] .dashboard-main-bg input,
+html[data-bg-dark="true"] .dashboard-main-bg textarea,
+html[data-bg-dark="true"] .dashboard-main-bg select {
+  background-color: rgba(15, 23, 42, 0.5) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg input::placeholder,
+html[data-bg-dark="true"] .dashboard-main-bg textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
 body {
   color: hsl(var(--foreground));
   background: hsl(var(--background));
@@ -166,6 +179,24 @@ html[data-bg-dark="true"] .dashboard-main-bg aside a.bg-indigo-100 {
   color: rgb(255, 255, 255) !important;
 }
 
+/* Koyu arka plan: HOVER kontrast - sidebar, tablo satırları, butonlar (WCAG) */
+html[data-bg-dark="true"] .dashboard-main-bg aside nav a:hover,
+html[data-bg-dark="true"] .dashboard-main-bg aside a:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.98) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main table tbody tr:hover td {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+/* Görev tipi (Test/Deneme/Video) ve gün butonları - hover beyaz yerine koyu */
+html[data-bg-dark="true"] .dashboard-main-bg main button[class*="border-slate"]:hover:not([class*="border-blue"]):not([class*="bg-blue"]) {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: rgba(255, 255, 255, 0.98) !important;
+}
+
 /* Haftalık plan gün sütunları - koyu bg'de belirgin çerçeve */
 html[data-bg-dark="true"] .dashboard-main-bg .weekly-plan-scroll > div > div {
   background: rgba(255, 255, 255, 0.1) !important;
@@ -196,13 +227,29 @@ html[data-bg-dark="true"] .dashboard-main-bg main .text-slate-500 {
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
-/* Koyu arka plan: form kartları, Görev Ekle, Konu Takip, Ayarlar, Video Dersler - beyaz tema uyumu */
+/* Koyu arka plan: form kartları, Görev Ekle, Konu Takip, Ayarlar, İstatistikler, Video Dersler */
 html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="bg-white"],
 html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-2xl"][class*="border"][class*="bg-white"],
 html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="bg-slate-50"],
-html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="dark:bg-slate-900"] {
+html[data-bg-dark="true"] .dashboard-main-bg main [class*="rounded-xl"][class*="border"][class*="dark:bg-slate-900"],
+html[data-bg-dark="true"] .dashboard-main-bg main div[class*="bg-white/80"],
+html[data-bg-dark="true"] .dashboard-main-bg main div[class*="bg-white/60"],
+html[data-bg-dark="true"] .dashboard-main-bg main div[class*="rounded"][class*="bg-white"],
+html[data-bg-dark="true"] .dashboard-main-bg main div[class*="rounded"][class*="bg-slate-50"],
+html[data-bg-dark="true"] .dashboard-main-bg main div[class*="rounded"][class*="bg-slate-100"] {
   background: rgba(15, 23, 42, 0.85) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
+}
+/* data-bg-dark: Tab butonları (Deneme Analizi, Haftalık Özet) ve TYT/AYT seçili */
+html[data-bg-dark="true"] .dashboard-main-bg main button[class*="bg-white"]:not([class*="bg-indigo"]):not([class*="bg-blue"]):not([class*="bg-rose"]):not([class*="bg-emerald"]) {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+/* data-bg-dark: Tab konteynerleri (slate-100 arka planlı) */
+html[data-bg-dark="true"] .dashboard-main-bg main div[class*="rounded"][class*="bg-slate-100"][class*="p-1"],
+html[data-bg-dark="true"] .dashboard-main-bg main div[class*="rounded"][class*="bg-slate-800"] {
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 /* Readonly alanlar (Ad Soyad, E-posta vb.) */
 html[data-bg-dark="true"] .dashboard-main-bg main p[class*="rounded"][class*="border"],
@@ -246,6 +293,11 @@ html[data-bg-dark="true"] .dashboard-main-bg main [role="button"][class*="bg-whi
 html[data-bg-dark="true"] .dashboard-main-bg main .animate-dropdown-in {
   background: rgba(30, 41, 59, 0.98) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
+}
+html[data-bg-dark="true"] .dashboard-main-bg main .animate-dropdown-in button:hover,
+html[data-bg-dark="true"] .dashboard-main-bg main .animate-dropdown-in [role="button"]:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
 }
 /* Gün butonları (Pazartesi, Salı) - border-slate-200 */
 html[data-bg-dark="true"] .dashboard-main-bg main button[class*="border-slate-200"]:not([class*="bg-indigo"]) {
